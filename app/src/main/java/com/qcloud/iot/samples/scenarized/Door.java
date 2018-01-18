@@ -97,8 +97,14 @@ public class Door {
         String topic = String.format("%s/%s/%s", PRODUCT_ID, DEVICE_NAME, "event");
         mqttConnection.publish(topic, message, null);
 
-        mqttConnection.disConnect(null);
-        mqttConnection = null;
+        closeConnection();
+    }
+
+    public void closeConnection() {
+        if (null != mqttConnection) {
+            mqttConnection.disConnect(null);
+            mqttConnection = null;
+        }
     }
 
     private class DoorMqttActionCallBack extends TXMqttActionCallBack {

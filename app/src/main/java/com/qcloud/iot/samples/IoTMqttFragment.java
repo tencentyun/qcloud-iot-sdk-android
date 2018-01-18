@@ -114,6 +114,10 @@ public class IoTMqttFragment extends Fragment {
         return view;
     }
 
+    public void closeConnection() {
+        mMQTTSample.disconnect();
+    }
+
     /**
      * 实现TXMqttActionCallBack回调接口
      */

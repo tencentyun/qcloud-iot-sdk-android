@@ -381,6 +381,10 @@ public class IoTRemoteServiceFragment extends Fragment implements View.OnClickLi
         mShadowClient.update(devicePropertyList, remoteRequest);
     }
 
+    public void closeConnection() {
+        onDisconnect();
+    }
+
     /**
      * 根据云端下发的消息更新设备属性
      *

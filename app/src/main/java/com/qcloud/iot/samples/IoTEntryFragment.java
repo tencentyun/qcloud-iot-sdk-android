@@ -68,6 +68,10 @@ public class IoTEntryFragment extends Fragment {
         return view;
     }
 
+    public void closeConnection() {
+        mAir.closeConnection();
+        mDoor.closeConnection();
+    }
 
     private class AirMqttActionCallBack extends TXMqttActionCallBack {
 

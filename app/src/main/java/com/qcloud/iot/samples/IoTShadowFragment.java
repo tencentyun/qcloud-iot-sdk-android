@@ -43,6 +43,11 @@ public class IoTShadowFragment extends Fragment {
         return view;
     }
 
+    public void closeConnection() {
+        mShadowSample.closeConnect();
+    }
+
+
     /**
      * 初始化
      */

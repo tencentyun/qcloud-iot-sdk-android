@@ -67,4 +67,10 @@ public class Airconditioner {
         String topic = String.format("%s/%s/%s", PRODUCT_ID, DEVICE_NAME, "control");
         mqttConnection.subscribe(topic, TXMqttConstants.QOS1, null);
     }
+
+    public void closeConnection() {
+        if (null != mqttConnection) {
+            mqttConnection.disConnect(null);
+        }
+    }
 }

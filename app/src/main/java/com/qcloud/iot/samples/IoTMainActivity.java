@@ -12,6 +12,7 @@ import android.widget.TextView;
 import com.qcloud.iot.R;
 import com.qcloud.iot.util.TXLog;
 
+
 public class IoTMainActivity extends AppCompatActivity implements View.OnClickListener {
 
     /**
@@ -34,6 +35,8 @@ public class IoTMainActivity extends AppCompatActivity implements View.OnClickLi
     private Button btnRemoteService;
 
     private Button btnEntry;
+
+    private int mCurrentFragment = R.id.btn_basic_function;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -96,6 +99,9 @@ public class IoTMainActivity extends AppCompatActivity implements View.OnClickLi
         // 隐藏Fragment
         hideFragments(transaction);
 
+        closeMqttConnection(mCurrentFragment);
+        mCurrentFragment = id;
+
         switch (id) {
 
             case R.id.btn_basic_function:
@@ -141,6 +147,42 @@ public class IoTMainActivity extends AppCompatActivity implements View.OnClickLi
         // 事务提交
         transaction.commit();
 
+    }
+
+    /**
+     * 关闭上一个Fragment中开启的mqtt连接
+     *
+     * @param id
+     */
+    private void closeMqttConnection(int id) {
+        switch (id) {
+            case R.id.btn_basic_function:
+                if (null != mMqttFragment) {
+                    mMqttFragment.closeConnection();
+                }
+                break;
+
+            case R.id.btn_shadow:
+                if (null != mShadowFragment) {
+                    mShadowFragment.closeConnection();
+                }
+                break;
+
+            case R.id.btn_remote_service:
+                if (null != mRemoteServiceFragment) {
+                    mRemoteServiceFragment.closeConnection();
+                }
+                break;
+
+            case R.id.btn_entry_demo:
+                if (null != mEntryFragment) {
+                    mEntryFragment.closeConnection();
+                }
+                break;
+
+            default:
+                break;
+        }
     }
 
 
