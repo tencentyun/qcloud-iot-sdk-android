@@ -8,7 +8,6 @@ import com.qcloud.iot.util.TXLog;
 import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions;
 import org.eclipse.paho.client.mqttv3.IMqttActionListener;
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.IMqttMessageListener;
 import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttAsyncClient;
 import org.eclipse.paho.client.mqttv3.MqttCallbackExtended;
@@ -51,7 +50,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
     private HashMap<String, Integer> mSubscribedTopicMap = new HashMap<>();
 
     private static int INVALID_MESSAGE_ID = -1;
-    private int lastReceivedMessageId = INVALID_MESSAGE_ID;
+    private int mLastReceivedMessageId = INVALID_MESSAGE_ID;
 
     /**
      * 断连状态下buffer缓冲区，当连接重新建立成功后自动将buffer中数据写出
@@ -136,8 +135,13 @@ public class TXMqttConnection implements MqttCallbackExtended {
      */
     public synchronized Status connect(MqttConnectOptions options, Object userContext) {
         if (mConnectStatus.equals(TXMqttConstants.ConnectStatus.kConnecting)) {
-            TXLog.i(TAG, "The client is connecting. Reconnect return directly.");
+            TXLog.i(TAG, "The client is connecting. Connect return directly.");
             return Status.MQTT_CONNECT_IN_PROGRESS;
+        }
+
+        if (mConnectStatus.equals(TXMqttConstants.ConnectStatus.kConnected)) {
+            TXLog.i(TAG, "The client is already connected. Connect return directly.");
+            return Status.OK;
         }
 
         this.mConnOptions = options;
@@ -267,7 +271,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
      * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
      */
     public Status disConnect(long timeout, Object userContext) {
-        lastReceivedMessageId = INVALID_MESSAGE_ID;
+        mLastReceivedMessageId = INVALID_MESSAGE_ID;
 
         if (mMqttClient != null && mMqttClient.isConnected()) {
             IMqttActionListener mActionListener = new IMqttActionListener() {
@@ -467,7 +471,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
         TXLog.e(TAG, "connection lost because of: %s", cause.toString());
         setConnectingState(TXMqttConstants.ConnectStatus.kDisconnected);
         mActionCallBack.onConnectionLost(cause);
-        lastReceivedMessageId = INVALID_MESSAGE_ID;
+        mLastReceivedMessageId = INVALID_MESSAGE_ID;
     }
 
     /**
@@ -479,14 +483,14 @@ public class TXMqttConnection implements MqttCallbackExtended {
      */
     @Override
     public void messageArrived(String topic, MqttMessage message) throws Exception {
-        if (message.getQos() > 0 && message.getId() == lastReceivedMessageId) {
+        if (message.getQos() > 0 && message.getId() == mLastReceivedMessageId) {
             TXLog.e(TAG, "Received topic: %s, id: %d, message: %s, discard repeated message!!!", topic, message.getId(), message);
             return;
         }
 
         TXLog.i(TAG, "Received topic: %s, id: %d, message: %s", topic, message.getId(), message);
 
-        lastReceivedMessageId = message.getId();
+        mLastReceivedMessageId = message.getId();
         mActionCallBack.onMessageReceived(topic, message);
     }
 
