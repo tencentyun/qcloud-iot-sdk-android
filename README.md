@@ -98,5 +98,27 @@ com.qcloud.iot D/IoTMqttFragment: onDisconnectCompleted, status[OK], userContext
 
 ![](http://qzonestyle.gtimg.cn/qzone/vas/opensns/res/doc/iot_1515734324922.png)
 
+## 三、集成方式
+SDK 提供以下两种集成方式：
+#### 1. 源码集成
+从 [github](https://github.com/tencentyun/qcloud-iot-sdk-android) 上下载 SDK 源码，根据 IoT-SDK 运行方式分为以下两种情况：
+- 若需要将 IoT-SDK 运行在 service 组件中，则需同时集成 iot_core、iot_service 两个 module (iot_service 依赖 iot_core);
+- 若不需要将 IoT-SDK 运行在 service 组件中，则只需集成 iot_core module。
+
+#### 2. gradle 集成
+在 App 的 build.gradle 文件中增加 IoT-SDK 的依赖，根据 IoT-SDK 运行方式分为以下两种情况：
+- 若需要将 IoT-SDK 运行在 service 组件中，则需同时依赖 iot-core、iot-service aar，当前版本号为 1.2.0:
+```
+dependencies {
+    compile 'com.qcloud.iot:iot-core:1.2.0'
+    compile 'com.qcloud.iot:iot-service:1.2.0'
+}
+```
+- 若不需要将 IoT-SDK 运行在 service 组件中，则只需要依赖 iot-core:
+```
+dependencies {
+    compile 'com.qcloud.iot:iot-core:1.2.0'
+}
+```
 
 #关于SDK的更多使用方式及接口了解, 请访问[官方WiKi](https://github.com/tencentyun/qcloud-iot-sdk-android/wiki)
