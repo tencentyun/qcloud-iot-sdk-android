@@ -32,6 +32,10 @@ android {
     }
 }
 
+ext {
+    useLocalIoTCore = false // Changed to true is better for sample development.
+}
+
 dependencies {
     compile fileTree(include: ['*.jar'], dir: 'libs')
     androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
@@ -39,5 +43,13 @@ dependencies {
     })
     compile 'com.android.support:appcompat-v7:26.+'
     testCompile 'junit:junit:4.12'
-    compile project(':iot_core')
+
+    if (useLocalIoTCore) {
+        compile project(':iot_core')
+    }
+    else {
+        compile 'com.qcloud.iot:iot-core:1.2.0'
+    }
 }
+
+apply from: 'bintray.gradle'

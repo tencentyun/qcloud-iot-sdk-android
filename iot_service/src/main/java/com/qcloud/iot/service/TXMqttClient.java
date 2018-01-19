@@ -303,7 +303,7 @@ public class TXMqttClient {
     /**
      * MQTT断连, 结果通过回调函数通知。
      *
-     * @param timeout     等待时间（必须>0）。单位：毫秒
+     * @param timeout     等待时间（必须大于0）。单位：毫秒
      * @param userContext 用户上下文（这个参数在回调函数时透传给用户）
      * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
      */
