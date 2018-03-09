@@ -34,6 +34,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
      */
     public String mServerURI;
     public String mClientId;
+    public String mProductId;
     public String mDeviceName;
     public String mUserName;
 
@@ -51,6 +52,8 @@ public class TXMqttConnection implements MqttCallbackExtended {
 
     private static int INVALID_MESSAGE_ID = -1;
     private int mLastReceivedMessageId = INVALID_MESSAGE_ID;
+
+    private TXOTAImpl mOTAImpl = null;
 
     /**
      * 断连状态下buffer缓冲区，当连接重新建立成功后自动将buffer中数据写出
@@ -107,6 +110,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
         this.mContext = context;
 
         this.mServerURI = serverURI;
+        this.mProductId = productID;
         this.mClientId = productID + deviceName;
         this.mDeviceName = deviceName;
         this.mUserName = mClientId + ";" + TXMqttConstants.APPID;
@@ -153,7 +157,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
         // 连接时在userName中增加connectId
         mUserName = mUserName + ";" + getConnectId();
         mConnOptions.setUserName(mUserName);
-        //mConnOptions.setPassword(mPassword.toCharArray());
+        mConnOptions.setPassword("".toCharArray());
         mConnOptions.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1_1);
 
         IMqttActionListener mActionListener = new IMqttActionListener() {
@@ -272,6 +276,10 @@ public class TXMqttConnection implements MqttCallbackExtended {
      */
     public Status disConnect(long timeout, Object userContext) {
         mLastReceivedMessageId = INVALID_MESSAGE_ID;
+
+        if (mOTAImpl != null) {
+            mOTAImpl.setSubscribedState(false);
+        }
 
         if (mMqttClient != null && mMqttClient.isConnected()) {
             IMqttActionListener mActionListener = new IMqttActionListener() {
@@ -420,6 +428,46 @@ public class TXMqttConnection implements MqttCallbackExtended {
         return Status.OK;
     }
 
+    /**
+     * 初始化OTA功能。
+     *
+     * @param storagePath OTA升级包存储路径(调用者必确保路径已存在，并且具有写权限)
+     * @param callback    OTA事件回调
+     */
+    public void initOTA(String storagePath, TXOTACallBack callback) {
+        mOTAImpl = new TXOTAImpl(this, storagePath, callback);
+    }
+
+    /**
+     * 上报设备当前版本信息到后台服务器。
+     *
+     * @param currentFirmwareVersion 设备当前版本信息
+     * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
+     */
+    public Status reportCurrentFirmwareVersion(String currentFirmwareVersion) {
+        if (mOTAImpl != null && currentFirmwareVersion != null) {
+            return mOTAImpl.reportCurrentFirmwareVersion(currentFirmwareVersion);
+        }
+
+        return Status.ERROR;
+    }
+
+    /**
+     * 上报设备升级状态到后台服务器。
+     *
+     * @param state
+     * @param resultCode
+     * @param resultMsg
+     * @param version
+     * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
+     */
+    public Status reportOTAState(TXOTAConstansts.ReportState state, int resultCode, String resultMsg, String version) {
+        if (mOTAImpl != null) {
+            return mOTAImpl.reportUpdateFirmwareState(state.toString().toLowerCase(), resultCode, resultMsg, version);
+        }
+
+        return  Status.ERROR;
+    }
 
     /**
      * 设置当前连接状态
@@ -469,9 +517,16 @@ public class TXMqttConnection implements MqttCallbackExtended {
     @Override
     public void connectionLost(Throwable cause) {
         TXLog.e(TAG, "connection lost because of: %s", cause.toString());
+
         setConnectingState(TXMqttConstants.ConnectStatus.kDisconnected);
+
         mActionCallBack.onConnectionLost(cause);
+
         mLastReceivedMessageId = INVALID_MESSAGE_ID;
+
+        if (mOTAImpl != null) {
+            mOTAImpl.setSubscribedState(false);
+        }
     }
 
     /**
@@ -491,7 +546,10 @@ public class TXMqttConnection implements MqttCallbackExtended {
         TXLog.i(TAG, "Received topic: %s, id: %d, message: %s", topic, message.getId(), message);
 
         mLastReceivedMessageId = message.getId();
-        mActionCallBack.onMessageReceived(topic, message);
+
+        if (mOTAImpl != null && !mOTAImpl.processMessage(topic, message)) {
+            mActionCallBack.onMessageReceived(topic, message);
+        }
     }
 
     /**
@@ -554,6 +612,10 @@ public class TXMqttConnection implements MqttCallbackExtended {
                         mActionCallBack.onSubscribeCompleted(Status.ERROR, token, token.getUserContext(), TXMqttConstants.SUBSCRIBE_FAIL);
                     } else {
                         mActionCallBack.onSubscribeCompleted(Status.OK, token, token.getUserContext(), TXMqttConstants.SUBSCRIBE_SUCCESS);
+
+                        if (mOTAImpl != null) {
+                            mOTAImpl.onSubscribeCompleted(Status.OK, token, token.getUserContext(), TXMqttConstants.SUBSCRIBE_SUCCESS);
+                        }
                     }
                     break;
 

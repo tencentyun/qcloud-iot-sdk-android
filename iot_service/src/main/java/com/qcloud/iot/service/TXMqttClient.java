@@ -9,6 +9,8 @@ import android.os.RemoteException;
 
 import com.qcloud.iot.common.Status;
 import com.qcloud.iot.mqtt.TXMqttActionCallBack;
+import com.qcloud.iot.mqtt.TXOTACallBack;
+import com.qcloud.iot.mqtt.TXOTAConstansts;
 import com.qcloud.iot.util.TXLog;
 
 import java.util.HashMap;
@@ -64,6 +66,38 @@ public class TXMqttClient {
      * mqtt远程服务
      */
     protected ITXMqttService mRemoteServer = null;
+
+    private TXOTACallBack mOTACallback = null;
+
+    private ITXOTAListener mOTAListener = new ITXOTAListener.Stub() {
+        @Override
+        public void onReportFirmwareVersion(int resultCode, String version, String resultMsg) {
+            if (mOTACallback != null) {
+                mOTACallback.onReportFirmwareVersion(resultCode, version, resultMsg);
+            }
+        }
+
+        @Override
+        public void onDownloadProgress(int percent, String version) throws RemoteException {
+            if (mOTACallback != null) {
+                mOTACallback.onDownloadProgress(percent, version);
+            }
+        }
+
+        @Override
+        public void onDownloadCompleted(String outputFile, String version) throws RemoteException {
+            if (mOTACallback != null) {
+                mOTACallback.onDownloadCompleted(outputFile, version);
+            }
+        }
+
+        @Override
+        public void onDownloadFailure(int errCode, String version) throws RemoteException {
+            if (mOTACallback != null) {
+                mOTACallback.onDownloadFailure(errCode, version);
+            }
+        }
+    };
 
     public TXMqttClient() {
     }
@@ -405,6 +439,64 @@ public class TXMqttClient {
      */
     public void clear() {
         mUserContextMap.clear();
+    }
+
+
+    /**
+     * 初始化OTA功能。
+     *
+     * @param storagePath OTA升级包存储路径(调用者必确保路径已存在，并且具有写权限)
+     * @param callback    OTA事件回调
+     */
+    public void initOTA(String storagePath, TXOTACallBack callback) {
+        mOTACallback = callback;
+
+        try {
+            mRemoteServer.initOTA(storagePath, mOTAListener);
+        } catch (RemoteException e) {
+            TXLog.e(TAG, e, "invoke remote service[initOTA] failed!");
+        }
+    }
+
+    /**
+     * 上报设备当前版本信息到后台服务器。
+     *
+     * @param currentFirmwareVersion 设备当前版本信息
+     * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
+     */
+    public Status reportCurrentFirmwareVersion(String currentFirmwareVersion)  {
+        Status status = Status.ERROR;
+
+        try {
+            String statusStr = mRemoteServer.reportCurrentFirmwareVersion(currentFirmwareVersion);
+            status = Status.valueOf(Status.class, statusStr);
+        } catch (RemoteException e) {
+            TXLog.e(TAG, e, "invoke remote service[reportCurrentFirmwareVersion] failed!");
+        }
+
+        return status;
+    }
+
+    /**
+     * 上报设备升级状态到后台服务器。
+     *
+     * @param state
+     * @param resultCode
+     * @param resultMsg
+     * @param version
+     * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
+     */
+    public Status reportOTAState(TXOTAConstansts.ReportState state, int resultCode, String resultMsg, String version) {
+        Status status = Status.ERROR;
+
+        try {
+            String statusStr = mRemoteServer.reportOTAState(state.name(), resultCode, resultMsg, version);
+            status = Status.valueOf(Status.class, statusStr);
+        } catch (RemoteException e) {
+            TXLog.e(TAG, e, "invoke remote service[reportOTAState] failed!");
+        }
+
+        return status;
     }
 
     /**

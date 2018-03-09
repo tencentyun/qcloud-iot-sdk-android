@@ -42,6 +42,8 @@ public class IoTMqttFragment extends Fragment {
 
     private Button mPublishBtn;
 
+    private Button mCheckFirmwareBtn;
+
     private TextView mLogInfoText;
 
     private AtomicInteger temperature = new AtomicInteger(0);
@@ -59,6 +61,7 @@ public class IoTMqttFragment extends Fragment {
         mSubScribeBtn = view.findViewById(R.id.subscribe_topic);
         mUnSubscribeBtn = view.findViewById(R.id.unSubscribe_topic);
         mPublishBtn = view.findViewById(R.id.publish_topic);
+        mCheckFirmwareBtn = view.findViewById(R.id.check_firmware);
         mLogInfoText = view.findViewById(R.id.log_info);
 
         mConnectBtn.setOnClickListener(new View.OnClickListener() {
@@ -108,6 +111,13 @@ public class IoTMqttFragment extends Fragment {
 
                 // 需先在腾讯云控制台，增加自定义主题: data，用于更新自定义数据
                 mMQTTSample.publishTopic("custom_data", data);
+            }
+        });
+
+        mCheckFirmwareBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                mMQTTSample.checkFirmware();
             }
         });
 

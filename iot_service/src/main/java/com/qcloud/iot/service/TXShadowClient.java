@@ -6,6 +6,8 @@ import android.os.RemoteException;
 
 import com.qcloud.iot.common.Status;
 import com.qcloud.iot.mqtt.TXMqttConstants;
+import com.qcloud.iot.mqtt.TXOTACallBack;
+import com.qcloud.iot.mqtt.TXOTAConstansts;
 import com.qcloud.iot.shadow.DeviceProperty;
 import com.qcloud.iot.shadow.TXShadowActionCallBack;
 import com.qcloud.iot.util.TXLog;
@@ -236,6 +238,42 @@ public class TXShadowClient {
      */
     public void clear() {
         mMqttClient.clear();
+    }
+
+    /**
+     * 初始化OTA功能。
+     *
+     * @param storagePath OTA升级包存储路径(调用者必确保路径已存在，并且具有写权限)
+     * @param callback    OTA事件回调
+     */
+    public void initOTA(String storagePath, TXOTACallBack callback) {
+
+        mMqttClient.initOTA(storagePath, callback);
+    }
+
+    /**
+     * 上报设备当前版本信息到后台服务器。
+     *
+     * @param currentFirmwareVersion 设备当前版本信息
+     * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
+     */
+    public Status reportCurrentFirmwareVersion(String currentFirmwareVersion)  {
+
+        return mMqttClient.reportCurrentFirmwareVersion(currentFirmwareVersion);
+    }
+
+    /**
+     * 上报设备升级状态到后台服务器。
+     *
+     * @param state
+     * @param resultCode
+     * @param resultMsg
+     * @param version
+     * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
+     */
+    public Status reportOTAState(TXOTAConstansts.ReportState state, int resultCode, String resultMsg, String version) {
+
+        return mMqttClient.reportOTAState(state, resultCode, resultMsg, version);
     }
 
     /**

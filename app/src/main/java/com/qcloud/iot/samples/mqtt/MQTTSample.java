@@ -1,10 +1,13 @@
 package com.qcloud.iot.samples.mqtt;
 
 import android.content.Context;
+import android.os.Environment;
 
 import com.qcloud.iot.mqtt.TXMqttActionCallBack;
 import com.qcloud.iot.mqtt.TXMqttConnection;
 import com.qcloud.iot.mqtt.TXMqttConstants;
+import com.qcloud.iot.mqtt.TXOTACallBack;
+import com.qcloud.iot.mqtt.TXOTAConstansts;
 import com.qcloud.iot.util.AsymcSslUtils;
 import com.qcloud.iot.util.TXLog;
 
@@ -81,7 +84,10 @@ public class MQTTSample {
         options.setConnectionTimeout(8);
         options.setKeepAliveInterval(240);
         options.setAutomaticReconnect(true);
-        options.setSocketFactory(AsymcSslUtils.getSocketFactoryByAssetsFile(mContext, DEVICE_CERT_NAME, DEVICE_KEY_NAME));
+
+        if (TXMqttConstants.DEFAULT_SERVER_URI.toLowerCase().startsWith("ssl://")) {
+            options.setSocketFactory(AsymcSslUtils.getSocketFactoryByAssetsFile(mContext, DEVICE_CERT_NAME, DEVICE_KEY_NAME));
+        }
 
         MQTTRequest mqttRequest = new MQTTRequest("connect", requestID.getAndIncrement());
         mMqttConnection.connect(options, mqttRequest);
@@ -158,5 +164,36 @@ public class MQTTSample {
 
         // 发布主题
         mMqttConnection.publish(topic, message, mqttRequest);
+
+    }
+
+    public void checkFirmware() {
+
+        mMqttConnection.initOTA(Environment.getExternalStorageDirectory().getAbsolutePath(), new TXOTACallBack() {
+            @Override
+            public void onReportFirmwareVersion(int resultCode, String version, String resultMsg) {
+                TXLog.e(TAG, "onReportFirmwareVersion:" + resultCode + ", version:" + version + ", resultMsg:" + resultMsg);
+            }
+
+            @Override
+            public void onDownloadProgress(int percent, String version) {
+                TXLog.e(TAG, "onDownloadProgress:" + percent);
+            }
+
+            @Override
+            public void onDownloadCompleted(String outputFile, String version) {
+                TXLog.e(TAG, "onDownloadCompleted:" + outputFile + ", version:" + version);
+
+                mMqttConnection.reportOTAState(TXOTAConstansts.ReportState.DONE, 0, "OK", version);
+            }
+
+            @Override
+            public void onDownloadFailure(int errCode, String version) {
+                TXLog.e(TAG, "onDownloadFailure:" + errCode);
+
+                mMqttConnection.reportOTAState(TXOTAConstansts.ReportState.FAIL, errCode, "FAIL", version);
+            }
+        });
+        mMqttConnection.reportCurrentFirmwareVersion("0.0.1");
     }
 }

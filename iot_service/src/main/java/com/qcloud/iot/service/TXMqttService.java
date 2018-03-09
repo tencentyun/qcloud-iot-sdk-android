@@ -11,6 +11,8 @@ import com.qcloud.iot.common.Status;
 import com.qcloud.iot.mqtt.TXMqttActionCallBack;
 import com.qcloud.iot.mqtt.TXMqttConnection;
 import com.qcloud.iot.mqtt.TXMqttConstants;
+import com.qcloud.iot.mqtt.TXOTACallBack;
+import com.qcloud.iot.mqtt.TXOTAConstansts;
 import com.qcloud.iot.shadow.DeviceProperty;
 import com.qcloud.iot.shadow.TXShadowActionCallBack;
 import com.qcloud.iot.shadow.TXShadowConnection;
@@ -101,6 +103,50 @@ public class TXMqttService extends Service {
     private boolean mUseShadow = false;
 
     private boolean isInit = false;
+
+
+    private ITXOTAListener mOTAListener = null;
+    private TXOTACallBack mInternalOTACallback = new TXOTACallBack() {
+        @Override
+        public void onReportFirmwareVersion(int resultCode, String version, String resultMsg) {
+            if (mOTAListener != null) {
+                try {
+                    mOTAListener.onReportFirmwareVersion(resultCode, version, resultMsg);
+                }catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        @Override
+        public void onDownloadProgress(int percent, String version) {
+            if (mOTAListener != null) {
+                try {
+                    mOTAListener.onDownloadProgress(percent, version);
+                }catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        @Override
+        public void onDownloadCompleted(String outputFile, String version) {
+            try {
+                mOTAListener.onDownloadCompleted(outputFile, version);
+            }catch (Exception e) {
+
+            }
+        }
+
+        @Override
+        public void onDownloadFailure(int errCode, String version) {
+            try {
+                mOTAListener.onDownloadFailure(errCode, version);
+            }catch (Exception e) {
+
+            }
+        }
+    };
 
     @Override
     public void onCreate() {
@@ -281,6 +327,65 @@ public class TXMqttService extends Service {
             status = mMqttConnection.publish(topic, message, userContext);
         }
         return status.name();
+    }
+
+    /**
+     * 初始化OTA功能。
+     *
+     * @param storagePath OTA升级包存储路径(调用者必确保路径已存在，并且具有写权限)
+     * @param otaListener OTA事件回调
+     */
+    public void initOTA(String storagePath, ITXOTAListener otaListener) {
+        if (!isInit) {
+            TXLog.d(TAG, "device is not initialized!");
+            return;
+        }
+        
+        mOTAListener = otaListener;
+
+        if (mUseShadow && null != mShadowConnection) {
+            mShadowConnection.getMqttConnection().initOTA(storagePath, mInternalOTACallback);
+        } else if (null != mMqttConnection) {
+            mMqttConnection.initOTA(storagePath, mInternalOTACallback);
+        }
+    }
+
+    /**
+     * 上报设备当前版本信息到后台服务器。
+     *
+     * @param currentFirmwareVersion 设备当前版本信息
+     * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
+     */
+    public Status reportCurrentFirmwareVersion(String currentFirmwareVersion) {
+        Status status = Status.ERROR;
+
+        if (mUseShadow && null != mShadowConnection) {
+            status = mShadowConnection.getMqttConnection().reportCurrentFirmwareVersion(currentFirmwareVersion);
+        } else if (null != mMqttConnection) {
+            status = mMqttConnection.reportCurrentFirmwareVersion(currentFirmwareVersion);
+        }
+        return status;
+    }
+
+    /**
+     * 上报设备升级状态到后台服务器。
+     *
+     * @param state
+     * @param resultCode
+     * @param resultMsg
+     * @param version
+     * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
+     */
+    public Status reportOTAState(String state, int resultCode, String resultMsg, String version) {
+        Status status = Status.ERROR;
+
+
+        if (mUseShadow && null != mShadowConnection) {
+            status = mShadowConnection.getMqttConnection().reportOTAState(TXOTAConstansts.ReportState.valueOf(TXOTAConstansts.ReportState.class, state), resultCode, resultMsg, version);
+        } else if (null != mMqttConnection) {
+            status = mMqttConnection.reportOTAState(TXOTAConstansts.ReportState.valueOf(TXOTAConstansts.ReportState.class, state), resultCode, resultMsg, version);
+        }
+        return status;
     }
 
     private String subscribe(String topic, int qos, long userContextId) {
@@ -704,6 +809,23 @@ public class TXMqttService extends Service {
                 return status.name();
             }
 
+            @Override
+            public void initOTA(String storagePath, ITXOTAListener listener) throws RemoteException {
+
+                TXMqttService.this.initOTA(storagePath, listener);
+            }
+
+            @Override
+            public String reportCurrentFirmwareVersion(String currentFirmwareVersion) throws RemoteException {
+                Status status = TXMqttService.this.reportCurrentFirmwareVersion(currentFirmwareVersion);
+                return status.name();
+            }
+
+            @Override
+            public String reportOTAState(String state, int resultCode, String resultMsg, String version) throws RemoteException {
+                Status status = TXMqttService.this.reportOTAState(state, resultCode, resultMsg, version);
+                return status.name();
+            }
         };
     }
 

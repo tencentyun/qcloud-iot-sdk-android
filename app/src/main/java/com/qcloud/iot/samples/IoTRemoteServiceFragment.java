@@ -15,6 +15,7 @@ import android.widget.TextView;
 import com.qcloud.iot.R;
 import com.qcloud.iot.common.Status;
 import com.qcloud.iot.mqtt.TXMqttActionCallBack;
+import com.qcloud.iot.mqtt.TXOTACallBack;
 import com.qcloud.iot.samples.service.RemoteRequest;
 import com.qcloud.iot.samples.shadow.ShadowRequest;
 import com.qcloud.iot.service.TXMqttClient;

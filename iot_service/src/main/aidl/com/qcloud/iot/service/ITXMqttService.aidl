@@ -3,6 +3,7 @@ package com.qcloud.iot.service;
 
 import com.qcloud.iot.service.TXDisconnectedBufferOptions;
 import com.qcloud.iot.service.ITXMqttActionListener;
+import com.qcloud.iot.service.ITXOTAListener;
 import com.qcloud.iot.service.ITXShadowActionListener;
 import com.qcloud.iot.service.TXMqttConnectOptions;
 import com.qcloud.iot.service.TXMqttClientOptions;
@@ -109,4 +110,30 @@ interface ITXMqttService {
      */
     String reportNullDesiredInfo(String reportJsonDoc);
 
+    /**
+     * 初始化OTA功能。
+     *
+     * @param storagePath OTA升级包存储路径(调用者必确保路径已存在，并且具有写权限)
+     * @param listener    OTA事件回调
+     */
+    void initOTA(String storagePath, in ITXOTAListener listener);
+
+    /**
+     * 上报设备当前版本信息到后台服务器。
+     *
+     * @param currentFirmwareVersion 设备当前版本信息
+     * @return 发送成功时返回字符串"OK"; 其它返回值表示发送失败；
+     */
+    String reportCurrentFirmwareVersion(String currentFirmwareVersion);
+
+     /**
+     * 上报设备升级状态到后台服务器。
+     *
+     * @param state
+     * @param resultCode
+     * @param resultMsg
+     * @param version
+     * @return 发送成功时返回字符串"OK"; 其它返回值表示发送失败；
+     */
+    String reportOTAState(String state, int resultCode, String resultMsg, String version);
 }

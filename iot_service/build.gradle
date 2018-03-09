@@ -33,7 +33,7 @@ android {
 }
 
 ext {
-    useLocalIoTCore = false // Changed to true is better for sample development.
+    useLocalIoTCore = true // Changed to true is better for sample development.
 }
 
 dependencies {
