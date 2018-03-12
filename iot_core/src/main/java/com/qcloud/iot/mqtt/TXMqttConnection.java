@@ -431,7 +431,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
     /**
      * 初始化OTA功能。
      *
-     * @param storagePath OTA升级包存储路径(调用者必确保路径已存在，并且具有写权限)
+     * @param storagePath OTA升级包存储路径(调用者必须确保路径已存在，并且具有写权限)
      * @param callback    OTA事件回调
      */
     public void initOTA(String storagePath, TXOTACallBack callback) {
@@ -455,10 +455,10 @@ public class TXMqttConnection implements MqttCallbackExtended {
     /**
      * 上报设备升级状态到后台服务器。
      *
-     * @param state
-     * @param resultCode
-     * @param resultMsg
-     * @param version
+     * @param state 状态
+     * @param resultCode 结果代码。0：表示成功；其它：表示失败；常见错误码：-1: 下载超时; -2:文件不存在；-3:签名过期；-4:校验错误；-5:更新固件失败
+     * @param resultMsg 结果描述
+     * @param version 版本号
      * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
      */
     public Status reportOTAState(TXOTAConstansts.ReportState state, int resultCode, String resultMsg, String version) {

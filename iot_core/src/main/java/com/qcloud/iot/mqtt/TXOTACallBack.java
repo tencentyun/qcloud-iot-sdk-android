@@ -34,7 +34,7 @@ public interface TXOTACallBack {
     /**
      * OTA升级包下载失败回调
      *
-     * @param errCode  失败错误码; -1: 下载超时; -2:文件不存在；-3:签名过期；-4:校验错误；
+     * @param errCode  失败错误码; -1: 下载超时; -2:文件不存在；-3:签名过期；-4:校验错误；-5:更新固件失败
      * @param version  版本；
      */
     void onDownloadFailure(int errCode, String version);

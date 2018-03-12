@@ -110,14 +110,14 @@ SDK 提供以下两种集成方式：
 - 若需要将 IoT-SDK 运行在 service 组件中，则需同时依赖 iot-core、iot-service aar，当前版本号为 1.2.0:
 ```
 dependencies {
-    compile 'com.qcloud.iot:iot-core:1.2.0'
-    compile 'com.qcloud.iot:iot-service:1.2.0'
+    compile 'com.qcloud.iot:iot-core:2.0.0'
+    compile 'com.qcloud.iot:iot-service:2.0.0'
 }
 ```
 - 若不需要将 IoT-SDK 运行在 service 组件中，则只需要依赖 iot-core:
 ```
 dependencies {
-    compile 'com.qcloud.iot:iot-core:1.2.0'
+    compile 'com.qcloud.iot:iot-core:2.0.0'
 }
 ```
 
