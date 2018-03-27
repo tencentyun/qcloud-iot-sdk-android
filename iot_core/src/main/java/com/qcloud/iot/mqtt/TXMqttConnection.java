@@ -154,9 +154,8 @@ public class TXMqttConnection implements MqttCallbackExtended {
             return Status.PARAMETER_INVALID;
         }
 
-        // 连接时在userName中增加connectId
-        mUserName = mUserName + ";" + getConnectId();
-        mConnOptions.setUserName(mUserName);
+
+        mConnOptions.setUserName(mUserName + ";" + getConnectId()); // 连接时在userName中增加connectId
         mConnOptions.setPassword("".toCharArray());
         mConnOptions.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1_1);
 

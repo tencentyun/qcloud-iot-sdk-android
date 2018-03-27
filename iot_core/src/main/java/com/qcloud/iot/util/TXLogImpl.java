@@ -63,7 +63,7 @@ public class TXLogImpl implements TXLog.LogImp {
     /**
      * 将日志写到文件
      */
-    private static void writeLogToFile(String log) {
+    private synchronized static void writeLogToFile(String log) {
         try {
             // 如果SD卡不可用，则不写日志，以免每次都抛出异常，影响性能
             if (!Environment.MEDIA_MOUNTED.equals(Environment.getExternalStorageState())) {

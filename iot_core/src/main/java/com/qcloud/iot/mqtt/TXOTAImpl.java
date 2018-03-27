@@ -5,6 +5,7 @@ import android.os.Environment;
 import android.os.SystemClock;
 
 import com.qcloud.iot.common.Status;
+import com.qcloud.iot.device.CA;
 import com.qcloud.iot.util.TXLog;
 
 import org.eclipse.paho.client.mqttv3.IMqttToken;
@@ -12,6 +13,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -20,8 +22,13 @@ import java.io.RandomAccessFile;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.security.MessageDigest;
+import java.security.PublicKey;
 import java.security.cert.CertificateException;
+import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
@@ -30,7 +37,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 public class TXOTAImpl {
-    private final String TAG = TXOTAImpl.class.getName();
+    private static final String TAG = TXOTAImpl.class.getName();
     private TXMqttConnection mConnection;
     private TXOTACallBack mCallback;
 
@@ -46,6 +53,39 @@ public class TXOTAImpl {
     private final int DEFAULT_CONNECT_TIMEOUT = 10000; //毫秒
     private final int DEFAULT_READ_TIMEOUT    = 10000; //毫秒
     private final int MAX_TRY_TIMES = 3;
+    private static List<X509Certificate> serverCertList = null;
+
+    //加载服务器证书
+    private static void prepareOTAServerCA() {
+
+        if (serverCertList == null) {
+            serverCertList = new ArrayList<>();
+            for (String certStr : CA.cosServerCaCrtList) {
+                ByteArrayInputStream caInput = null;
+                try {
+                    CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+                    caInput = new ByteArrayInputStream(certStr.getBytes());
+
+                    X509Certificate certificate = (X509Certificate) certificateFactory.generateCertificate(caInput);
+                    if (certificate != null) {
+                        //TXLog.i(TAG, "add certificate:" + certificate);
+                        serverCertList.add(certificate);
+                    }
+                } catch (Exception e) {
+                    TXLog.e(TAG, "prepareOTAServerCA error:" + e);
+                } finally {
+                    if (caInput != null) {
+                        try {
+                            caInput.close();
+                        } catch (Exception e) {
+
+                        }
+                    }
+                }
+            }
+        }
+    }
+
 
     /**
      *  构造OTA对象
@@ -61,6 +101,8 @@ public class TXOTAImpl {
 
         OTA_UPDATE_TOPIC = "$ota/update/" + mConnection.mProductId + "/" + mConnection.mDeviceName;
         OTA_REPORT_TOPIC = "$ota/report/" + mConnection.mProductId + "/" + mConnection.mDeviceName;
+
+        prepareOTAServerCA();
     }
 
     /**
@@ -300,12 +342,43 @@ public class TXOTAImpl {
             TrustManager[] tm = {new X509TrustManager(){
                 @Override
                 public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
-
+                    // Do nothing. We only want to check server side certificate.
+                    TXLog.w(TAG, "checkClientTrusted");
                 }
 
                 @Override
                 public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
 
+                    if (x509Certificates == null) {
+                        throw new CertificateException("check OTA server x509Certificates is null");
+                    }
+
+                    if (x509Certificates.length <= 0) {
+                        throw new CertificateException("check OTA server x509Certificates is empty");
+                    }
+
+
+                    int match = 0;
+                    for (X509Certificate cert : x509Certificates) {
+
+                        try {
+                            cert.checkValidity();
+
+                            for (X509Certificate c: serverCertList) {
+                                if (cert.equals(c))
+                                    match++;
+                            }
+                        }catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+
+                    if (match > 0 && match == CA.cosServerCaCrtList.length) {
+                        TXLog.i(TAG, "checkServerTrusted OK!!!");
+                        return;
+                    }
+
+                    throw new CertificateException("check OTA server x509Certificates failed");
                 }
 
                 @Override
@@ -349,10 +422,13 @@ public class TXOTAImpl {
                 int tryTimes = 0;
 
                 do {
+                    RandomAccessFile fos = null;
+                    InputStream stream = null;
+
                     try {
                         tryTimes++;
 
-                        RandomAccessFile fos = new RandomAccessFile(outputFile, "rw");
+                        fos = new RandomAccessFile(outputFile, "rw");
                         TXLog.d(TAG, "fileLength " + fos.length() + " bytes");
 
                         long downloadBytes = 0;
@@ -374,7 +450,7 @@ public class TXOTAImpl {
                         int totalLength = conn.getContentLength();
                         TXLog.d(TAG, "totalLength " + totalLength + " bytes");
 
-                        InputStream stream = conn.getInputStream();
+                        stream = conn.getInputStream();
                         byte buffer[] = new byte[1024 * 1024];
 
                         while (downloadBytes < totalLength) {
@@ -413,7 +489,7 @@ public class TXOTAImpl {
                             TXLog.e(TAG, "md5 checksum not match!!!" + " calculated md5:" + calcMD5);
 
                             if (mCallback != null) {
-                                mCallback.onDownloadFailure(-4, version);
+                                mCallback.onDownloadFailure(-4, version);  //校验失败
                             }
 
                             new File(outputFile).delete();   //delete
@@ -426,8 +502,29 @@ public class TXOTAImpl {
 
                             break;         //quit loop
                         }
+                    }catch (CertificateException e) {
+                        if (mCallback != null) {
+                            mCallback.onDownloadFailure(-4, version); //校验失败
+                        }
                     } catch (Exception e) {
                         e.printStackTrace();
+
+                    }finally {
+                        if (fos != null) {
+                            try {
+                                fos.close();
+                            }catch (Exception e) {
+
+                            }
+                        }
+
+                        if (stream != null) {
+                            try {
+                                stream.close();
+                            }catch (Exception e) {
+
+                            }
+                        }
                     }
                 }while (tryTimes <= MAX_TRY_TIMES);
 

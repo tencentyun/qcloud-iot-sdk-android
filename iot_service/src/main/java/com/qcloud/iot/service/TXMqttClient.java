@@ -198,13 +198,13 @@ public class TXMqttClient {
             public void onServiceConnected(ComponentName name, IBinder service) {
                 TXLog.d(TAG, "onServiceConnected, ComponentName[%s]", name.getClassName());
 
-                if (null != mExternalServiceConnection) {
-                    mExternalServiceConnection.onServiceConnected(name, null);
-                }
-
                 // 再次开启远程服务时，会回调ITXMqttActionListener.aidl的onServiceStartedCallback()接口，用于返回服务已开启状态
                 // 同时该接口会调用mInternalServiceConnection的onServiceConnected()接口，此时传递的IBinder为null，因此需判断service是否为空。
                 if (null == service) {
+                    if (null != mExternalServiceConnection) {
+                        mExternalServiceConnection.onServiceConnected(name, null);
+                    }
+
                     return;
                 }
 
@@ -214,8 +214,13 @@ public class TXMqttClient {
                     mRemoteServer.registerMqttActionListener(mMqttActionListener);
                     mRemoteServer.registerShadowActionListener(shadowActionListener);
                     mRemoteServer.initDeviceInfo(mMqttClientOptions);
+
                 } catch (RemoteException e) {
                     TXLog.e(TAG, e, "invoke remote service failed!");
+                }
+
+                if (null != mExternalServiceConnection) {
+                    mExternalServiceConnection.onServiceConnected(name, null);
                 }
             }
         };
@@ -606,7 +611,9 @@ public class TXMqttClient {
                     if (null != mServiceIntent) {
                         componentName = mServiceIntent.getComponent();
                     }
-                    mInternalServiceConnection.onServiceConnected(componentName, null);
+                    if (null != componentName) {
+                        mInternalServiceConnection.onServiceConnected(componentName, null);
+                    }
                 }
             }
 
@@ -618,7 +625,9 @@ public class TXMqttClient {
                     if (null != mServiceIntent) {
                         componentName = mServiceIntent.getComponent();
                     }
-                    mInternalServiceConnection.onServiceDisconnected(componentName);
+                    if (null != componentName) {
+                        mInternalServiceConnection.onServiceDisconnected(componentName);
+                    }
                 }
             }
         };

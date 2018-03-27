@@ -44,10 +44,11 @@ public class TXAlarmPingSender implements MqttPingSender {
     public void start() {
         String action = TXMqttConstants.PING_SENDER + mComms.getClient().getClientId();
         TXLog.d(TAG, "Register alarmreceiver to Context " + action);
-        mContext.registerReceiver(mAlarmReceiver, new IntentFilter(action));
+        if (mContext != null && mAlarmReceiver != null) {
+            mContext.registerReceiver(mAlarmReceiver, new IntentFilter(action));
+        }
 
-        pendingIntent = PendingIntent.getBroadcast(mContext, 0, new Intent(
-                action), PendingIntent.FLAG_UPDATE_CURRENT);
+        pendingIntent = PendingIntent.getBroadcast(mContext, 0, new Intent(action), PendingIntent.FLAG_UPDATE_CURRENT);
 
         schedule(mComms.getKeepAlive());
         hasStarted = true;
@@ -77,22 +78,18 @@ public class TXAlarmPingSender implements MqttPingSender {
     public void schedule(long delayInMilliseconds) {
         long nextAlarmInMilliseconds = System.currentTimeMillis() + delayInMilliseconds;
         TXLog.d(TAG, "Schedule next alarm at " + nextAlarmInMilliseconds);
-        AlarmManager alarmManager = (AlarmManager) mContext
-                .getSystemService(Context.ALARM_SERVICE);
+        AlarmManager alarmManager = (AlarmManager) mContext.getSystemService(Context.ALARM_SERVICE);
 
         if(Build.VERSION.SDK_INT >= 23){
             // In SDK 23 and above, dosing will prevent setExact, setExactAndAllowWhileIdle will force
             // the device to run this task whilst dosing.
             TXLog.d(TAG, "Alarm scheule using setExactAndAllowWhileIdle, next: " + delayInMilliseconds);
-            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextAlarmInMilliseconds,
-                    pendingIntent);
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, nextAlarmInMilliseconds, pendingIntent);
         } else if (Build.VERSION.SDK_INT >= 19) {
             TXLog.d(TAG, "Alarm scheule using setExact, delay: " + delayInMilliseconds);
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, nextAlarmInMilliseconds,
-                    pendingIntent);
+            alarmManager.setExact(AlarmManager.RTC_WAKEUP, nextAlarmInMilliseconds, pendingIntent);
         } else {
-            alarmManager.set(AlarmManager.RTC_WAKEUP, nextAlarmInMilliseconds,
-                    pendingIntent);
+            alarmManager.set(AlarmManager.RTC_WAKEUP, nextAlarmInMilliseconds, pendingIntent);
         }
     }
 
@@ -134,8 +131,7 @@ public class TXAlarmPingSender implements MqttPingSender {
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
-                    TXLog.d(TAG, "Failure. Release lock(" + wakeLockTag + "):"
-                            + System.currentTimeMillis());
+                    TXLog.d(TAG, "Failure. Release lock(" + wakeLockTag + "):" + System.currentTimeMillis());
                     //Release wakelock when it is done.
                     wakelock.release();
                 }

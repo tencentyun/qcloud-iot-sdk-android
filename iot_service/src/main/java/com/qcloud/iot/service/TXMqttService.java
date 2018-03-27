@@ -255,9 +255,19 @@ public class TXMqttService extends Service {
         connectOptions.setKeepAliveInterval(options.getKeepAliveInterval());
 
         if (options.isAsymcEncryption()) {
-            connectOptions.setSocketFactory(AsymcSslUtils.getSocketFactoryByAssetsFile(mContext, options.getDeviceCertName(), options.getDeviceKeyName()));
-        } else {
-            connectOptions.setSocketFactory(SymcSslUtils.getSocketFactory(options.getPsk()));
+
+            String certFile = options.getDeviceCertName();
+            String keyFile = options.getDeviceKeyName();
+
+            if (certFile.startsWith("/")) {
+                connectOptions.setSocketFactory(AsymcSslUtils.getSocketFactoryByFile(certFile, keyFile));
+            }else if (certFile.startsWith("file://")) {
+                certFile = certFile.substring(7);
+                keyFile = keyFile.substring(7);
+                connectOptions.setSocketFactory(AsymcSslUtils.getSocketFactoryByFile(certFile, keyFile));
+            } else {
+                connectOptions.setSocketFactory(AsymcSslUtils.getSocketFactoryByAssetsFile(mContext, certFile, keyFile));
+            }
         }
 
         mUseShadow = options.isUseShadow();

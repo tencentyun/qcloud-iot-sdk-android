@@ -56,6 +56,8 @@ public class AsymcSslUtils {
      * @return
      */
     public static SSLSocketFactory getSocketFactoryByAssetsFile(Context context, final String clientCrtFileName, final String clientPriKeyFileName) {
+        SSLSocketFactory factory = null;
+
         AssetManager assetManager = context.getAssets();
         if (assetManager == null) {
             return null;
@@ -66,12 +68,29 @@ public class AsymcSslUtils {
         try {
             clientInputStream = assetManager.open(clientCrtFileName);
             keyInputStream = assetManager.open(clientPriKeyFileName);
+
+            factory = getSocketFactoryByStream(clientInputStream, keyInputStream);;
         } catch (IOException e) {
             TXLog.e(TAG, "getSocketFactory failed, cannot open CRT Files.", e);
-            return null;
+        }finally {
+            if (clientInputStream != null) {
+                try {
+                    clientInputStream.close();
+                }catch (Exception e) {
+
+                }
+            }
+
+            if (keyInputStream != null) {
+                try {
+                    keyInputStream.close();
+                }catch (Exception e) {
+
+                }
+            }
         }
 
-        return getSocketFactoryByStream(clientInputStream, keyInputStream);
+        return factory;
     }
 
     /**
@@ -85,15 +104,34 @@ public class AsymcSslUtils {
     public static SSLSocketFactory getSocketFactoryByFile(final String clientCrtFileName, final String clientPriKeyFileName) {
         InputStream clientInputStream = null;
         InputStream keyInputStream = null;
+        SSLSocketFactory factory = null;
+
         try {
             clientInputStream = new FileInputStream(new File(clientCrtFileName));
             keyInputStream = new FileInputStream(new File(clientPriKeyFileName));
+
+            factory = getSocketFactoryByStream(clientInputStream, keyInputStream);;
         } catch (IOException e) {
             TXLog.e(TAG, "getSocketFactory failed, cannot open CRT Files.", e);
-            return null;
+        }finally {
+            if (clientInputStream != null) {
+                try {
+                    clientInputStream.close();
+                }catch (Exception e) {
+
+                }
+            }
+
+            if (keyInputStream != null) {
+                try {
+                    keyInputStream.close();
+                }catch (Exception e) {
+
+                }
+            }
         }
 
-        return getSocketFactoryByStream(clientInputStream, keyInputStream);
+        return factory;
     }
 
     /**
