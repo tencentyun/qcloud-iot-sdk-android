@@ -156,7 +156,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
 
 
         mConnOptions.setUserName(mUserName + ";" + getConnectId()); // 连接时在userName中增加connectId
-        mConnOptions.setPassword("".toCharArray());
+        //mConnOptions.setPassword("".toCharArray());
         mConnOptions.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1_1);
 
         IMqttActionListener mActionListener = new IMqttActionListener() {
