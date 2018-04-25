@@ -546,8 +546,15 @@ public class TXMqttConnection implements MqttCallbackExtended {
 
         mLastReceivedMessageId = message.getId();
 
-        if (mOTAImpl != null && !mOTAImpl.processMessage(topic, message)) {
-            mActionCallBack.onMessageReceived(topic, message);
+        boolean consumed = false;
+        if (mOTAImpl != null ) {
+            consumed = mOTAImpl.processMessage(topic, message);
+        }
+
+        if (mActionCallBack != null) {
+            if (!consumed) {
+                mActionCallBack.onMessageReceived(topic, message);
+            }
         }
     }
 
