@@ -16,6 +16,7 @@ import com.qcloud.iot.mqtt.TXOTAConstansts;
 import com.qcloud.iot.shadow.DeviceProperty;
 import com.qcloud.iot.shadow.TXShadowActionCallBack;
 import com.qcloud.iot.shadow.TXShadowConnection;
+import com.qcloud.iot.shadow.TXShadowConstants;
 import com.qcloud.iot.util.AsymcSslUtils;
 import com.qcloud.iot.util.SymcSslUtils;
 import com.qcloud.iot.util.TXLog;
@@ -25,6 +26,8 @@ import org.eclipse.paho.client.mqttv3.IMqttToken;
 import org.eclipse.paho.client.mqttv3.MqttClientPersistence;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.json.JSONArray;
+import org.json.JSONObject;
 
 import java.util.List;
 
@@ -774,6 +777,20 @@ public class TXMqttService extends Service {
             public String updateShadow(List<DeviceProperty> devicePropertyList, long userContextId) throws RemoteException {
                 for (DeviceProperty deviceProperty : devicePropertyList) {
                     TXLog.d(TAG, "updateShadow, deviceProperty[%s]", deviceProperty.toString());
+
+                    if (deviceProperty.mDataType == TXShadowConstants.JSONDataType.OBJECT) {
+                        try {
+                            deviceProperty.mData = new JSONObject((String) deviceProperty.mData);
+                        }catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }else if (deviceProperty.mDataType == TXShadowConstants.JSONDataType.ARRAY) {
+                        try {
+                            deviceProperty.mData = new JSONArray((String) deviceProperty.mData);
+                        }catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
                 }
 
                 Status status = Status.ERROR;

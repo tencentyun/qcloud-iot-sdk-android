@@ -16,7 +16,7 @@ public class DeviceProperty implements Parcelable {
     /**
      * 属性值
      */
-    public String mData;
+    public Object mData;
 
     /**
      * 属性值类型
@@ -75,7 +75,7 @@ public class DeviceProperty implements Parcelable {
      * @param mData
      * @return
      */
-    public DeviceProperty data(String mData) {
+    public DeviceProperty data(Object mData) {
         this.mData = mData;
         return this;
     }
@@ -99,7 +99,7 @@ public class DeviceProperty implements Parcelable {
     @Override
     public void writeToParcel(Parcel out, int flag) {
         out.writeString(mKey);
-        out.writeString(mData);
+        out.writeString(mData.toString());
         out.writeString(mDataType.name());
     }
 

@@ -387,15 +387,15 @@ public class TXShadowConnection {
                 JSONObject reportedJSONObj = new JSONObject();
                 for (DeviceProperty deviceProperty : devicePropertyList) {
                     if (TXShadowConstants.JSONDataType.INT == deviceProperty.mDataType) {
-                        reportedJSONObj.put(deviceProperty.mKey, Integer.parseInt(deviceProperty.mData));
+                        reportedJSONObj.put(deviceProperty.mKey, Integer.parseInt((String)deviceProperty.mData));
                     } else if (TXShadowConstants.JSONDataType.LONG == deviceProperty.mDataType) {
-                        reportedJSONObj.put(deviceProperty.mKey, Long.parseLong(deviceProperty.mData));
+                        reportedJSONObj.put(deviceProperty.mKey, Long.parseLong((String)deviceProperty.mData));
                     } else if (TXShadowConstants.JSONDataType.FLOAT == deviceProperty.mDataType) {
-                        reportedJSONObj.put(deviceProperty.mKey, Float.parseFloat(deviceProperty.mData));
+                        reportedJSONObj.put(deviceProperty.mKey, Float.parseFloat((String)deviceProperty.mData));
                     } else if (TXShadowConstants.JSONDataType.DOUBLE == deviceProperty.mDataType) {
-                        reportedJSONObj.put(deviceProperty.mKey, Double.parseDouble(deviceProperty.mData));
+                        reportedJSONObj.put(deviceProperty.mKey, Double.parseDouble((String)deviceProperty.mData));
                     } else if (TXShadowConstants.JSONDataType.BOOLEAN == deviceProperty.mDataType) {
-                        reportedJSONObj.put(deviceProperty.mKey, Boolean.parseBoolean(deviceProperty.mData));
+                        reportedJSONObj.put(deviceProperty.mKey, Boolean.parseBoolean((String)deviceProperty.mData));
                     } else {
                         reportedJSONObj.put(deviceProperty.mKey, deviceProperty.mData);
                     }
