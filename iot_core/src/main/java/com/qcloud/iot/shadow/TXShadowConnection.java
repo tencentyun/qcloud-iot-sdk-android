@@ -83,54 +83,58 @@ public class TXShadowConnection {
      * @param context    用户上下文（这个参数在回调函数时透传给用户）
      * @param productID  产品名
      * @param deviceName 设备名，唯一
+	 * @param secretKey  密钥
      * @param callBack   连接、消息发布、消息订阅回调接口
      */
-    public TXShadowConnection(Context context, String productID, String deviceName, TXShadowActionCallBack callBack) {
-        this(context, productID, deviceName, null, callBack);
+    public TXShadowConnection(Context context, String productID, String deviceName, String secretKey, TXShadowActionCallBack callBack) {
+        this(context, productID, deviceName, secretKey, null, callBack);
     }
 
     /**
      * @param context    用户上下文（这个参数在回调函数时透传给用户）
      * @param productID  产品名
      * @param deviceName 设备名，唯一
+	 * @param secretKey  密钥
      * @param bufferOpts 发布消息缓存buffer，当发布消息时MQTT连接非连接状态时使用
      * @param callBack   连接、消息发布、消息订阅回调接口
      */
-    public TXShadowConnection(Context context, String productID, String deviceName,
+    public TXShadowConnection(Context context, String productID, String deviceName, String secretKey,
                               DisconnectedBufferOptions bufferOpts, TXShadowActionCallBack callBack) {
-        this(context, productID, deviceName, bufferOpts, null, callBack);
+        this(context, productID, deviceName, secretKey, bufferOpts, null, callBack);
     }
 
     /**
      * @param context           用户上下文（这个参数在回调函数时透传给用户）
      * @param productID         产品名
      * @param deviceName        设备名，唯一
+	 * @param secretKey         密钥
      * @param bufferOpts        发布消息缓存buffer，当发布消息时MQTT连接非连接状态时使用
      * @param clientPersistence 消息永久存储
      * @param callBack          连接、消息发布、消息订阅回调接口
      */
-    public TXShadowConnection(Context context, String productID, String deviceName,
+    public TXShadowConnection(Context context, String productID, String deviceName, String secretKey,
                               DisconnectedBufferOptions bufferOpts, MqttClientPersistence clientPersistence, TXShadowActionCallBack callBack) {
-        this(context, TXMqttConstants.DEFAULT_SERVER_URI, productID, deviceName, bufferOpts, clientPersistence, callBack);
+        this(context, TXMqttConstants.DEFAULT_SERVER_URI, productID, deviceName, secretKey, bufferOpts, clientPersistence, callBack);
     }
 
     /**
      * Shadow连接器构造器
      *
      * @param context           用户上下文（这个参数在回调函数时透传给用户）
-     * @param serverURI         服务器URI，腾讯云默认唯一地址 TXMqttConstants.DEFAULT_SERVER_URI="ssl://connect.iot.qcloud.com:8883"
+     * @param serverURI         服务器URI
      * @param productID         产品名
      * @param deviceName        设备名，唯一
+	 * @param secretKey         密钥
      * @param bufferOpts        发布消息缓存buffer，当发布消息时MQTT连接非连接状态时使用
      * @param clientPersistence 消息永久存储
      * @param callBack          连接、消息发布、消息订阅回调接口
      */
-    public TXShadowConnection(Context context, String serverURI, String productID, String deviceName,
+    public TXShadowConnection(Context context, String serverURI, String productID, String deviceName, String secretKey,
                               DisconnectedBufferOptions bufferOpts, MqttClientPersistence clientPersistence, TXShadowActionCallBack callBack) {
         this.mContext = context;
         this.mShadowActionCallback = callBack;
 
-        mMqttConnection = new TXMqttConnection(context, serverURI, productID, deviceName,
+        mMqttConnection = new TXMqttConnection(context, serverURI, productID, deviceName, secretKey,
                 bufferOpts, clientPersistence, new ShadowUponMqttCallBack());
 
         OPERATION_TOPIC = "$shadow/operation/" + productID + "/" + mMqttConnection.mDeviceName;

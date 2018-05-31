@@ -8,7 +8,10 @@ import com.qcloud.iot.mqtt.TXMqttConnection;
 import com.qcloud.iot.mqtt.TXMqttConstants;
 import com.qcloud.iot.mqtt.TXOTACallBack;
 import com.qcloud.iot.mqtt.TXOTAConstansts;
+
 import com.qcloud.iot.util.AsymcSslUtils;
+import com.qcloud.iot.util.SymcSslUtils;
+
 import com.qcloud.iot.util.TXLog;
 
 import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions;
@@ -20,6 +23,7 @@ import org.json.JSONObject;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import javax.net.ssl.SSLContext;
 
 public class MQTTSample {
 
@@ -34,16 +38,13 @@ public class MQTTSample {
      * 设备名称
      */
     public static final String DEVICE_NAME = "YOUR_DEVICE_NAME";
-
-    /**
-     * 设备证书名
+	
+	
+	/**
+     * 密钥
      */
-    private static final String DEVICE_CERT_NAME = "YOUR_DEVICE_NAME_cert.crt";
+    private static final String SECRET_KEY = "YOUR_SECRET_KEY";
 
-    /**
-     * 设备私钥文件名
-     */
-    private static final String DEVICE_KEY_NAME = "YOUR_DEVICE_NAME_private.key";
 
     private Context mContext;
 
@@ -62,7 +63,7 @@ public class MQTTSample {
     public MQTTSample(Context context, TXMqttActionCallBack callBack) {
         mContext = context;
         mMqttActionCallBack = callBack;
-        mMqttConnection = new TXMqttConnection(mContext, PRODUCT_ID, DEVICE_NAME, mMqttActionCallBack);
+        mMqttConnection = new TXMqttConnection(mContext, PRODUCT_ID, DEVICE_NAME, SECRET_KEY, mMqttActionCallBack);
     }
 
     /**
@@ -85,9 +86,8 @@ public class MQTTSample {
         options.setKeepAliveInterval(240);
         options.setAutomaticReconnect(true);
 
-        if (TXMqttConstants.DEFAULT_SERVER_URI.toLowerCase().startsWith("ssl://")) {
-            options.setSocketFactory(AsymcSslUtils.getSocketFactoryByAssetsFile(mContext, DEVICE_CERT_NAME, DEVICE_KEY_NAME));
-        }
+        options.setSocketFactory(AsymcSslUtils.getSocketFactory());
+       
 
         MQTTRequest mqttRequest = new MQTTRequest("connect", requestID.getAndIncrement());
         mMqttConnection.connect(options, mqttRequest);

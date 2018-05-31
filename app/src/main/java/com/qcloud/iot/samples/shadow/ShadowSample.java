@@ -34,6 +34,12 @@ public class ShadowSample {
      */
     private static final String DEVICE_NAME = "YOUR_DEVICE_NAME";
 
+
+    /**
+     * 密钥
+     */
+    private static final String SECRET_KEY = null;
+	
     /**
      * 设备证书名
      */
@@ -89,7 +95,7 @@ public class ShadowSample {
     public void connect() {
         TXLog.i(TAG, "connect");
 
-        mShadowConnection = new TXShadowConnection(mContext, PRODUCT_ID, DEVICE_NAME, mShadowActionCallBack);
+        mShadowConnection = new TXShadowConnection(mContext, PRODUCT_ID, DEVICE_NAME, SECRET_KEY, mShadowActionCallBack);
 
         MqttConnectOptions options = new MqttConnectOptions();
         options.setConnectionTimeout(8);

@@ -24,6 +24,8 @@ public class TXMqttClientOptions implements Parcelable {
      */
     private String mDeviceName;
 
+    private String mSecretKey;
+
     public static final Creator<TXMqttClientOptions> CREATOR = new Creator<TXMqttClientOptions>() {
         @Override
         public TXMqttClientOptions createFromParcel(Parcel in) {
@@ -39,16 +41,18 @@ public class TXMqttClientOptions implements Parcelable {
     public TXMqttClientOptions() {
     }
 
-    public TXMqttClientOptions(String serverURI, String productId, String deviceName) {
+    public TXMqttClientOptions(String serverURI, String productId, String deviceName, String secretKey) {
         this.mServerURI = serverURI;
         this.mProductId = productId;
         this.mDeviceName = deviceName;
+        this.mSecretKey = secretKey;
     }
 
     protected TXMqttClientOptions(Parcel in) {
         mServerURI = in.readString();
         mProductId = in.readString();
         mDeviceName = in.readString();
+        mSecretKey = in.readString();
     }
 
 
@@ -56,8 +60,8 @@ public class TXMqttClientOptions implements Parcelable {
         return mServerURI;
     }
 
-    public TXMqttClientOptions serverURI(String mServerURI) {
-        this.mServerURI = mServerURI;
+    public TXMqttClientOptions serverURI(String serverURI) {
+        this.mServerURI = serverURI;
         return this;
     }
 
@@ -74,8 +78,17 @@ public class TXMqttClientOptions implements Parcelable {
         return mDeviceName;
     }
 
-    public TXMqttClientOptions deviceName(String mDeviceName) {
-        this.mDeviceName = mDeviceName;
+    public TXMqttClientOptions deviceName(String deviceName) {
+        this.mDeviceName = deviceName;
+        return this;
+    }
+
+    public String getSecretKey() {
+        return mSecretKey;
+    }
+
+    public TXMqttClientOptions secretKey(String secretKey) {
+        this.mSecretKey = secretKey;
         return this;
     }
 
@@ -89,6 +102,7 @@ public class TXMqttClientOptions implements Parcelable {
         parcel.writeString(mServerURI);
         parcel.writeString(mProductId);
         parcel.writeString(mDeviceName);
+        parcel.writeString(mSecretKey);
     }
 
     @Override

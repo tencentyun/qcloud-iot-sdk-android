@@ -39,7 +39,7 @@ public class TXMqttConnectOptions implements Parcelable {
     /**
      * 设备密码
      */
-    private String mPsk;
+    private String mSecretKey;
 
     public static final Creator<TXMqttConnectOptions> CREATOR = new Creator<TXMqttConnectOptions>() {
         @Override
@@ -57,7 +57,7 @@ public class TXMqttConnectOptions implements Parcelable {
     }
 
     public TXMqttConnectOptions(int mConnectionTimeout, int mKeepAliveInterval, boolean mAutomaticReconnect, boolean mCleanSession,
-                                boolean mAsymcEncryption, String mDeviceCertName, String mDeviceKeyName, String mPsk) {
+                                boolean mAsymcEncryption, String mDeviceCertName, String mDeviceKeyName, String mSecretKey) {
         this.mConnectionTimeout = mConnectionTimeout;
         this.mKeepAliveInterval = mKeepAliveInterval;
         this.mAutomaticReconnect = mAutomaticReconnect;
@@ -65,7 +65,7 @@ public class TXMqttConnectOptions implements Parcelable {
         this.mAsymcEncryption = mAsymcEncryption;
         this.mDeviceCertName = mDeviceCertName;
         this.mDeviceKeyName = mDeviceKeyName;
-        this.mPsk = mPsk;
+        this.mSecretKey = mSecretKey;
     }
 
     protected TXMqttConnectOptions(Parcel in) {
@@ -73,7 +73,7 @@ public class TXMqttConnectOptions implements Parcelable {
         mKeepAliveInterval = in.readInt();
         mDeviceCertName = in.readString();
         mDeviceKeyName = in.readString();
-        mPsk = in.readString();
+        mSecretKey = in.readString();
         boolean[] booleanArray = new boolean[4];
         in.readBooleanArray(booleanArray);
         mAutomaticReconnect = booleanArray[0];
@@ -94,7 +94,7 @@ public class TXMqttConnectOptions implements Parcelable {
         out.writeInt(mKeepAliveInterval);
         out.writeString(mDeviceCertName);
         out.writeString(mDeviceKeyName);
-        out.writeString(mPsk);
+        out.writeString(mSecretKey);
         boolean[] booleanArray = new boolean[]{mAutomaticReconnect, mUseShadow, mCleanSession, mAsymcEncryption};
         out.writeBooleanArray(booleanArray);
     }
@@ -162,12 +162,12 @@ public class TXMqttConnectOptions implements Parcelable {
         return this;
     }
 
-    public String getPsk() {
-        return mPsk;
+    public String getSecretKey() {
+        return mSecretKey;
     }
 
-    public TXMqttConnectOptions setPsk(String mPsk) {
-        this.mPsk = mPsk;
+    public TXMqttConnectOptions setSecretKey(String secretKey) {
+        this.mSecretKey = secretKey;
         return this;
     }
 
@@ -178,19 +178,5 @@ public class TXMqttConnectOptions implements Parcelable {
     protected TXMqttConnectOptions setUseShadow(boolean mUseShadow) {
         this.mUseShadow = mUseShadow;
         return this;
-    }
-
-    @Override
-    public String toString() {
-        return "TXMqttConnectOptions{" +
-                "mConnectionTimeout=" + mConnectionTimeout +
-                ", mKeepAliveInterval=" + mKeepAliveInterval +
-                ", mAutomaticReconnect=" + mAutomaticReconnect +
-                ", mCleanSession=" + mCleanSession +
-                ", mAsymcEncryption=" + mAsymcEncryption +
-                ", mDeviceCertName='" + mDeviceCertName + '\'' +
-                ", mDeviceKeyName='" + mDeviceKeyName + '\'' +
-                ", mPsk='" + mPsk + '\'' +
-                '}';
     }
 }

@@ -29,6 +29,11 @@ public class Door {
     private static final String DEVICE_NAME = "YOUR_DEVICE_NAME";
 
     /**
+     * 密钥
+     */
+    private static final String SECRET_KEY = "YOUR_SECRET_KEY";
+	
+    /**
      * 设备证书名
      */
     private static final String DEVICE_CERT_NAME = "YOUR_DEVICE_NAME_cert.crt";
@@ -57,8 +62,7 @@ public class Door {
      */
     public void enterRoom() {
         if (mqttConnection == null) {
-            mqttConnection = new TXMqttConnection(mContext, PRODUCT_ID,
-                    DEVICE_NAME, new DoorMqttActionCallBack());
+            mqttConnection = new TXMqttConnection(mContext, PRODUCT_ID, DEVICE_NAME, SECRET_KEY, new DoorMqttActionCallBack());
 
             options = new MqttConnectOptions();
             options.setConnectionTimeout(8);

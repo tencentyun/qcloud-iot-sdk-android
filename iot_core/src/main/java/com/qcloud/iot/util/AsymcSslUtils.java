@@ -250,6 +250,74 @@ public class AsymcSslUtils {
 
     }
 
+    /**
+     * 获取SSLSocketFactory
+     *
+     * @return
+     */
+    public static SSLSocketFactory getSocketFactory() {
+        Security.addProvider(new BouncyCastleProvider());
+        CertificateFactory certFactory = null;
+        try {
+            certFactory = CertificateFactory.getInstance("X.509");
+        } catch (CertificateException e) {
+            TXLog.e(TAG, "getSocketFactory failed, create CertificateFactory error.", e);
+        }
+
+        PEMParser parser = null;
+        X509Certificate caCert = null;
+
+        // load CA certificate
+        {
+            ByteArrayInputStream caInput = new ByteArrayInputStream(CA.caCrt.getBytes(Charset.forName("UTF-8")));
+            parser = new PEMParser(new InputStreamReader(caInput));
+            Object object = null;
+            try {
+                object = parser.readObject();
+            } catch (IOException e) {
+                TXLog.e(TAG, "parse CA failed.", e);
+                return null;
+            }
+
+            if (!(object instanceof X509CertificateHolder)) {
+                TXLog.e(TAG, "CA file not X509CertificateHolder.");
+                return null;
+            }
+
+            X509CertificateHolder certificateHolder = (X509CertificateHolder) object;
+            try {
+                InputStream caIn = new ByteArrayInputStream(certificateHolder.getEncoded());
+                caCert = (X509Certificate) certFactory.generateCertificate(caIn);
+                caIn.close();
+                parser.close();
+            } catch (Exception e) {
+                TXLog.e(TAG, "generate CA certtificate failed.", e);
+                return null;
+            }
+
+        }
+
+
+        try {
+            // CA certificate is used to authenticate server
+            KeyStore caKs = KeyStore.getInstance(KeyStore.getDefaultType());
+            caKs.load(null, null);
+            caKs.setCertificateEntry("ca-certificate", caCert);
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            tmf.init(caKs);
+
+
+            // finally, create SSL socket factory
+            SSLContext context = SSLContext.getInstance("TLS");
+            context.init(null, tmf.getTrustManagers(), null);
+            return context.getSocketFactory();
+        } catch (Exception e) {
+            TXLog.e(TAG, "construct SSLSocketFactory failed.", e);
+            return null;
+        }
+
+    }
+
     private static PrivateKey getPrivateKey(InputStream stream, String algorithm) throws IOException,
             GeneralSecurityException {
         PrivateKey key = null;

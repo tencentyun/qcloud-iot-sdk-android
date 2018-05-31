@@ -26,6 +26,11 @@ public class Airconditioner {
      */
     protected static final String DEVICE_NAME = "YOUR_DEVICE_NAME";
 
+  
+    /**
+     * 密钥
+     */
+    private static final String SECRET_KEY = "YOUR_SECRET_KEY";
     /**
      * 设备证书名
      */
@@ -45,8 +50,7 @@ public class Airconditioner {
     public Airconditioner(Context context, TXMqttActionCallBack callBack) {
         this.mContext = context;
 
-        mqttConnection = new TXMqttConnection(mContext, PRODUCT_ID,
-                DEVICE_NAME, callBack);
+        mqttConnection = new TXMqttConnection(mContext, PRODUCT_ID, DEVICE_NAME, SECRET_KEY, callBack);
 
         options = new MqttConnectOptions();
         options.setConnectionTimeout(8);

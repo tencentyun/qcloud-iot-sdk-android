@@ -2,6 +2,7 @@ package com.qcloud.iot.samples;
 
 import android.content.ComponentName;
 import android.content.ServiceConnection;
+import android.os.Environment;
 import android.os.IBinder;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
@@ -16,6 +17,7 @@ import com.qcloud.iot.R;
 import com.qcloud.iot.common.Status;
 import com.qcloud.iot.mqtt.TXMqttActionCallBack;
 import com.qcloud.iot.mqtt.TXOTACallBack;
+import com.qcloud.iot.mqtt.TXOTAConstansts;
 import com.qcloud.iot.samples.service.RemoteRequest;
 import com.qcloud.iot.samples.shadow.ShadowRequest;
 import com.qcloud.iot.service.TXMqttClient;
@@ -55,6 +57,11 @@ public class IoTRemoteServiceFragment extends Fragment implements View.OnClickLi
      */
     private static final String DEVICE_NAME = "YOUR_DEVICE_NAME";
 
+    /**
+     * 密钥
+     */
+    private static final String SECRET_KEY = "YOUR_SECRET_KEY";
+	
     /**
      * 设备证书名
      */
@@ -123,6 +130,7 @@ public class IoTRemoteServiceFragment extends Fragment implements View.OnClickLi
         mMqttClientOptions = new TXMqttClientOptions();
         mMqttClientOptions.productId(PRODUCT_ID);
         mMqttClientOptions.deviceName(DEVICE_NAME);
+        mMqttClientOptions.secretKey(SECRET_KEY);
         mMqttClientOptions.serverURI(null);
 
         mParent = (IoTMainActivity) this.getActivity();
@@ -251,6 +259,7 @@ public class IoTRemoteServiceFragment extends Fragment implements View.OnClickLi
         connectOptions.setAutomaticReconnect(true);
         connectOptions.setDeviceCertName(DEVICE_CERT_NAME);
         connectOptions.setDeviceKeyName(DEVICE_KEY_NAME);
+        connectOptions.setSecretKey(SECRET_KEY);
 
         RemoteRequest remoteRequest = new RemoteRequest(mRequestId.getAndIncrement());
 
@@ -415,6 +424,35 @@ public class IoTRemoteServiceFragment extends Fragment implements View.OnClickLi
         }
     }
 
+    private void checkFirmware() {
+
+        mMqttClient.initOTA(Environment.getExternalStorageDirectory().getAbsolutePath(), new TXOTACallBack() {
+            @Override
+            public void onReportFirmwareVersion(int resultCode, String version, String resultMsg) {
+                TXLog.e(TAG, "onReportFirmwareVersion:" + resultCode + ", version:" + version + ", resultMsg:" + resultMsg);
+            }
+
+            @Override
+            public void onDownloadProgress(int percent, String version) {
+                TXLog.e(TAG, "onDownloadProgress:" + percent);
+            }
+
+            @Override
+            public void onDownloadCompleted(String outputFile, String version) {
+                TXLog.e(TAG, "onDownloadCompleted:" + outputFile + ", version:" + version);
+
+                mMqttClient.reportOTAState(TXOTAConstansts.ReportState.DONE, 0, "OK", version);
+            }
+
+            @Override
+            public void onDownloadFailure(int errCode, String version) {
+                TXLog.e(TAG, "onDownloadFailure:" + errCode);
+
+                mMqttClient.reportOTAState(TXOTAConstansts.ReportState.FAIL, errCode, "FAIL", version);
+            }
+        });
+        mMqttClient.reportCurrentFirmwareVersion("0.0.1");
+    }
     /**
      * 初始化监听器
      */
@@ -442,6 +480,9 @@ public class IoTRemoteServiceFragment extends Fragment implements View.OnClickLi
                 String logInfo = String.format("onConnectCompleted, status[%s], reconnect[%b], userContext[%s], msg[%s]",
                         status, reconnect, userContext, msg);
                 mParent.printLogInfo(TAG, logInfo, mLogInfoText, TXLog.LEVEL_INFO);
+
+
+                checkFirmware();
             }
 
             @Override

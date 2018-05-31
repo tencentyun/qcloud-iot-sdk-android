@@ -58,6 +58,8 @@ public class TXMqttService extends Service {
      */
     private String mDeviceName;
 
+    private String mSecretKey;
+
     /**
      * MQTT 连接器
      */
@@ -223,6 +225,7 @@ public class TXMqttService extends Service {
         mProductId = mqttClientOptions.getProductId();
         mDeviceName = mqttClientOptions.getDeviceName();
         mServerURI = mqttClientOptions.getServerURI();
+        mSecretKey = mqttClientOptions.getSecretKey();
         TXLog.d(TAG, "initDeviceInfo, productId[%s], deviceName[%s], serverURI[%s]", mProductId, mDeviceName, mServerURI);
         isInit = true;
     }
@@ -260,31 +263,37 @@ public class TXMqttService extends Service {
         if (options.isAsymcEncryption()) {
 
             String certFile = options.getDeviceCertName();
-            String keyFile = options.getDeviceKeyName();
+            String keyFile  = options.getDeviceKeyName();
+            String secretKey = options.getSecretKey();
 
-            if (certFile.startsWith("/")) {
-                connectOptions.setSocketFactory(AsymcSslUtils.getSocketFactoryByFile(certFile, keyFile));
-            }else if (certFile.startsWith("file://")) {
-                certFile = certFile.substring(7);
-                keyFile = keyFile.substring(7);
-                connectOptions.setSocketFactory(AsymcSslUtils.getSocketFactoryByFile(certFile, keyFile));
-            } else {
-                connectOptions.setSocketFactory(AsymcSslUtils.getSocketFactoryByAssetsFile(mContext, certFile, keyFile));
+            if (secretKey != null && certFile == null && keyFile == null) {
+                connectOptions.setSocketFactory(AsymcSslUtils.getSocketFactory());
+            }else {
+
+                if (certFile.startsWith("/")) {
+                    connectOptions.setSocketFactory(AsymcSslUtils.getSocketFactoryByFile(certFile, keyFile));
+                } else if (certFile.startsWith("file://")) {
+                    certFile = certFile.substring(7);
+                    keyFile = keyFile.substring(7);
+                    connectOptions.setSocketFactory(AsymcSslUtils.getSocketFactoryByFile(certFile, keyFile));
+                } else {
+                    connectOptions.setSocketFactory(AsymcSslUtils.getSocketFactoryByAssetsFile(mContext, certFile, keyFile));
+                }
             }
         }
 
         mUseShadow = options.isUseShadow();
         if (mUseShadow) {
             if (TextUtils.isEmpty(mServerURI)) {
-                mShadowConnection = new TXShadowConnection(mContext, TXMqttConstants.DEFAULT_SERVER_URI, mProductId,
-                        mDeviceName, mDisconnectedBufferOptions, mClientPersistence, mShadowActionCallBack);
+                mShadowConnection = new TXShadowConnection(mContext, TXMqttConstants.DEFAULT_SERVER_URI, mProductId, mDeviceName, mSecretKey,
+                        mDisconnectedBufferOptions, mClientPersistence, mShadowActionCallBack);
             } else {
-                mShadowConnection = new TXShadowConnection(mContext, mServerURI, mProductId,
-                        mDeviceName, mDisconnectedBufferOptions, mClientPersistence, mShadowActionCallBack);
+                mShadowConnection = new TXShadowConnection(mContext, mServerURI, mProductId, mDeviceName, mSecretKey,
+                        mDisconnectedBufferOptions, mClientPersistence, mShadowActionCallBack);
             }
             status = mShadowConnection.connect(connectOptions, null);
         } else {
-            mMqttConnection = new TXMqttConnection(mContext, mProductId, mDeviceName, mMqttActionCallBack);
+            mMqttConnection = new TXMqttConnection(mContext, mProductId, mDeviceName, mSecretKey, mMqttActionCallBack);
             status = mMqttConnection.connect(connectOptions, Long.valueOf(userContextId));
         }
         return status.name();

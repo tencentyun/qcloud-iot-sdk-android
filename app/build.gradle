@@ -27,6 +27,11 @@ android {
 //            path "CMakeLists.txt"
         }
     }
+
+    packagingOptions {
+        exclude 'org/bouncycastle/x509/CertPathReviewerMessages_de.properties'
+        exclude 'org/bouncycastle/x509/CertPathReviewerMessages.properties'
+    }
 }
 
 dependencies {

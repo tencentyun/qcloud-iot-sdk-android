@@ -1,8 +1,10 @@
 package com.qcloud.iot.mqtt;
 
 import android.content.Context;
+import android.util.Base64;
 
 import com.qcloud.iot.common.Status;
+import com.qcloud.iot.util.HmacSha256;
 import com.qcloud.iot.util.TXLog;
 
 import org.eclipse.paho.client.mqttv3.DisconnectedBufferOptions;
@@ -37,6 +39,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
     public String mProductId;
     public String mDeviceName;
     public String mUserName;
+    public String mSecretKey;
 
     private Context mContext;
 
@@ -66,34 +69,37 @@ public class TXMqttConnection implements MqttCallbackExtended {
      * @param context    用户上下文（这个参数在回调函数时透传给用户）
      * @param productID  产品名
      * @param deviceName 设备名，唯一
+	 * @param secretKey  密钥
      * @param callBack   连接、消息发布、消息订阅回调接口
      */
-    public TXMqttConnection(Context context, String productID, String deviceName, TXMqttActionCallBack callBack) {
-        this(context, productID, deviceName, null, callBack);
+    public TXMqttConnection(Context context, String productID, String deviceName, String secretKey, TXMqttActionCallBack callBack) {
+        this(context, productID, deviceName, secretKey, null, callBack);
     }
 
     /**
      * @param context    用户上下文（这个参数在回调函数时透传给用户）
      * @param productID  产品名
      * @param deviceName 设备名，唯一
+	 * @param secretKey  密钥
      * @param bufferOpts 发布消息缓存buffer，当发布消息时MQTT连接非连接状态时使用
      * @param callBack   连接、消息发布、消息订阅回调接口
      */
-    public TXMqttConnection(Context context, String productID, String deviceName, DisconnectedBufferOptions bufferOpts, TXMqttActionCallBack callBack) {
-        this(context, productID, deviceName, bufferOpts, null, callBack);
+    public TXMqttConnection(Context context, String productID, String deviceName, String secretKey, DisconnectedBufferOptions bufferOpts, TXMqttActionCallBack callBack) {
+        this(context, productID, deviceName, secretKey, bufferOpts, null, callBack);
     }
 
     /**
      * @param context           用户上下文（这个参数在回调函数时透传给用户）
      * @param productID         产品名
      * @param deviceName        设备名，唯一
+	 * @param secretKey         密钥
      * @param bufferOpts        发布消息缓存buffer，当发布消息时MQTT连接非连接状态时使用
      * @param clientPersistence 消息永久存储
      * @param callBack          连接、消息发布、消息订阅回调接口
      */
-    public TXMqttConnection(Context context, String productID, String deviceName,
+    public TXMqttConnection(Context context, String productID, String deviceName, String secretKey,
                             DisconnectedBufferOptions bufferOpts, MqttClientPersistence clientPersistence, TXMqttActionCallBack callBack) {
-        this(context, DEFAULT_SERVER_URI, productID, deviceName, bufferOpts, clientPersistence, callBack);
+        this(context, DEFAULT_SERVER_URI, productID, deviceName, secretKey, bufferOpts, clientPersistence, callBack);
     }
 
     /**
@@ -101,14 +107,16 @@ public class TXMqttConnection implements MqttCallbackExtended {
      * @param serverURI         服务器URI，腾讯云默认唯一地址 TXMqttConstants.DEFAULT_SERVER_URI="ssl://connect.iot.qcloud.com:8883"
      * @param productID         产品名
      * @param deviceName        设备名，唯一
+	 * @param secretKey         密钥
      * @param bufferOpts        发布消息缓存buffer，当发布消息时MQTT连接非连接状态时使用
      * @param clientPersistence 消息永久存储
      * @param callBack          连接、消息发布、消息订阅回调接口
      */
-    public TXMqttConnection(Context context, String serverURI, String productID, String deviceName,
+    public TXMqttConnection(Context context, String serverURI, String productID, String deviceName, String secretKey,
                             DisconnectedBufferOptions bufferOpts, MqttClientPersistence clientPersistence, TXMqttActionCallBack callBack) {
         this.mContext = context;
 
+        this.mSecretKey = secretKey;
         this.mServerURI = serverURI;
         this.mProductId = productID;
         this.mClientId = productID + deviceName;
@@ -154,9 +162,16 @@ public class TXMqttConnection implements MqttCallbackExtended {
             return Status.PARAMETER_INVALID;
         }
 
+        Long timestamp = System.currentTimeMillis()/1000 + 600;
+        String userNameStr = mUserName + ";" + getConnectId() + ";" + timestamp;
 
-        mConnOptions.setUserName(mUserName + ";" + getConnectId()); // 连接时在userName中增加connectId
-        //mConnOptions.setPassword("".toCharArray());
+        mConnOptions.setUserName(userNameStr);
+
+        if (mSecretKey != null) {
+            String passWordStr = HmacSha256.getSignature(userNameStr.getBytes(), Base64.decode(mSecretKey, Base64.DEFAULT)) + ";hmacsha256";
+            mConnOptions.setPassword(passWordStr.toCharArray());
+        }
+
         mConnOptions.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1_1);
 
         IMqttActionListener mActionListener = new IMqttActionListener() {

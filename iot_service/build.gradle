@@ -48,7 +48,7 @@ dependencies {
         compile project(':iot_core')
     }
     else {
-        compile 'com.qcloud.iot:iot-core:1.2.0'
+        compile 'com.qcloud.iot:iot-core:2.1.0'
     }
 }
 
