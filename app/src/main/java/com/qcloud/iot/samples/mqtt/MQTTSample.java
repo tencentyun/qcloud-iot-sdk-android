@@ -2,7 +2,9 @@ package com.qcloud.iot.samples.mqtt;
 
 import android.content.Context;
 import android.os.Environment;
+import android.util.Log;
 
+import com.qcloud.iot.gateway.TXGatewayConnection;
 import com.qcloud.iot.mqtt.TXMqttActionCallBack;
 import com.qcloud.iot.mqtt.TXMqttConnection;
 import com.qcloud.iot.mqtt.TXMqttConstants;
@@ -27,25 +29,17 @@ import javax.net.ssl.SSLContext;
 
 public class MQTTSample {
 
-    private static final String TAG = "iot.mqtt.MQTTSample";
+    private static final String TAG = "TXMQTT";
 
-    /**
-     * 产品ID
-     */
-    private static final String PRODUCT_ID = "YOUR_PRODUCT_ID";
-
-    /**
-     * 设备名称
-     */
-    public static final String DEVICE_NAME = "YOUR_DEVICE_NAME";
+    // Default Value, should be changed in testing
+    private String mBrokerURL = "ssl://iotcloud-mqtt.gz.tencentdevices.com:8883";
+    private String mProductID = "PRODUCT-ID";
+    private String mDevName = "DEVICE-NAME";
+    private String mDevPSK = "DEVICE-SECRET";
+    private String mSubProductID = "SUBDEV_PRODUCT-ID";
+    private String mSubDevName = "SUBDEV_DEV-NAME";
+    private String mTestTopic = "TEST_TOPIC_WITH_SUB_PUB";
 	
-	
-	/**
-     * 密钥
-     */
-    private static final String SECRET_KEY = "YOUR_SECRET_KEY";
-
-
     private Context mContext;
 
     private TXMqttActionCallBack mMqttActionCallBack;
@@ -53,7 +47,7 @@ public class MQTTSample {
     /**
      * MQTT连接实例
      */
-    private TXMqttConnection mMqttConnection;
+    private TXGatewayConnection mMqttConnection;
 
     /**
      * 请求ID
@@ -63,7 +57,22 @@ public class MQTTSample {
     public MQTTSample(Context context, TXMqttActionCallBack callBack) {
         mContext = context;
         mMqttActionCallBack = callBack;
-        mMqttConnection = new TXMqttConnection(mContext, PRODUCT_ID, DEVICE_NAME, SECRET_KEY, mMqttActionCallBack);
+        mMqttConnection = new TXGatewayConnection(mContext, mBrokerURL, mProductID, mDevName, mDevPSK, mMqttActionCallBack);
+    }
+
+    public MQTTSample(Context context, TXMqttActionCallBack callBack, String brokerURL, String productId,
+                      String devName, String devPSK, String subProductID, String subDevName, String testTopic) {
+        mBrokerURL = brokerURL;
+        mProductID = productId;
+        mDevName = devName;
+        mDevPSK = devPSK;
+        mSubProductID = subProductID;
+        mSubDevName = subDevName;
+        mTestTopic = testTopic;
+
+        mContext = context;
+        mMqttActionCallBack = callBack;
+        mMqttConnection = new TXGatewayConnection(mContext, mBrokerURL, mProductID, mDevName, mDevPSK, mMqttActionCallBack);
     }
 
     /**
@@ -73,14 +82,14 @@ public class MQTTSample {
      * @return
      */
     private String getTopic(String topicName) {
-        return String.format("%s/%s/%s", PRODUCT_ID, DEVICE_NAME, topicName);
+        return mTestTopic;
     }
 
     /**
      * 建立MQTT连接
      */
     public void connect() {
-
+        mMqttConnection = new TXGatewayConnection(mContext, mBrokerURL, mProductID, mDevName, mDevPSK, mMqttActionCallBack);
         MqttConnectOptions options = new MqttConnectOptions();
         options.setConnectionTimeout(8);
         options.setKeepAliveInterval(240);
@@ -107,6 +116,15 @@ public class MQTTSample {
         mMqttConnection.disConnect(mqttRequest);
     }
 
+    public void setSubdevOnline() {
+        // set subdev online
+        mMqttConnection.gatewaySubdevOnline(mSubProductID, mSubDevName);
+    }
+
+    public void setSubDevOffline() {
+        mMqttConnection.gatewaySubdevOffline(mSubProductID, mSubDevName);
+    }
+
     /**
      * 订阅主题
      *
@@ -120,8 +138,11 @@ public class MQTTSample {
         // 用户上下文（请求实例）
         MQTTRequest mqttRequest = new MQTTRequest("subscribeTopic", requestID.getAndIncrement());
 
+        Log.d(TAG, "sub topic is " + topic);
+
         // 订阅主题
         mMqttConnection.subscribe(topic, qos, mqttRequest);
+
     }
 
     /**
@@ -134,7 +155,7 @@ public class MQTTSample {
         String topic = getTopic(topicName);
         // 用户上下文（请求实例）
         MQTTRequest mqttRequest = new MQTTRequest("unSubscribeTopic", requestID.getAndIncrement());
-
+        Log.d(TAG, "Start to unSubscribe" + topic);
         // 取消订阅主题
         mMqttConnection.unSubscribe(topic, mqttRequest);
     }
@@ -162,6 +183,7 @@ public class MQTTSample {
         // 用户上下文（请求实例）
         MQTTRequest mqttRequest = new MQTTRequest("publishTopic", requestID.getAndIncrement());
 
+        Log.d(TAG, "pub topic " + topic + message);
         // 发布主题
         mMqttConnection.publish(topic, message, mqttRequest);
 

@@ -47,5 +47,25 @@ public enum Status {
     /**
      * 表示文档请求数超并发
      */
-    ERR_MAX_APPENDING_REQUEST
+    ERR_MAX_APPENDING_REQUEST,
+
+    /**
+     *  子设备初始状态
+     */
+    SUBDEV_STAT_INIT,
+
+    /**
+     *  子设备在线状态
+     */
+    SUBDEV_STAT_ONLINE,
+
+    /**
+     *  子设备掉线状态
+     */
+    SUBDEV_STAT_OFFLINE,
+
+    /**
+     *  子设备不存在
+     */
+    SUBDEV_STAT_NOT_EXIST
 }

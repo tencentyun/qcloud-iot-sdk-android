@@ -2,6 +2,7 @@ package com.qcloud.iot.mqtt;
 
 import android.content.Context;
 import android.util.Base64;
+import android.util.Log;
 
 import com.qcloud.iot.common.Status;
 import com.qcloud.iot.util.HmacSha256;
@@ -24,11 +25,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 
 import static com.qcloud.iot.mqtt.TXMqttConstants.DEFAULT_SERVER_URI;
+import static com.qcloud.iot.mqtt.TXMqttConstants.MQTT_SDK_VER;
 
 
 public class TXMqttConnection implements MqttCallbackExtended {
 
-    public static final String TAG = TXMqttConnection.class.getName();
+    public static final String TAG = "TXMQTT_" + MQTT_SDK_VER;
 
     /**
      * tcp://localhost:port
@@ -41,29 +43,29 @@ public class TXMqttConnection implements MqttCallbackExtended {
     public String mUserName;
     public String mSecretKey;
 
-    private Context mContext;
+    protected Context mContext;
 
-    private MqttClientPersistence mMqttPersist = null;
-    private MqttConnectOptions mConnOptions = null;
+    protected MqttClientPersistence mMqttPersist = null;
+    protected MqttConnectOptions mConnOptions = null;
 
-    private MqttAsyncClient mMqttClient = null;
+    protected MqttAsyncClient mMqttClient = null;
 
-    private TXAlarmPingSender mPingSender = null;
-    private TXMqttActionCallBack mActionCallBack = null;
+    protected TXAlarmPingSender mPingSender = null;
+    protected TXMqttActionCallBack mActionCallBack = null;
 
     private HashMap<String, Integer> mSubscribedTopicMap = new HashMap<>();
 
     private static int INVALID_MESSAGE_ID = -1;
-    private int mLastReceivedMessageId = INVALID_MESSAGE_ID;
+    protected int mLastReceivedMessageId = INVALID_MESSAGE_ID;
 
     private TXOTAImpl mOTAImpl = null;
 
     /**
      * 断连状态下buffer缓冲区，当连接重新建立成功后自动将buffer中数据写出
      */
-    private DisconnectedBufferOptions bufferOpts = null;
+    protected DisconnectedBufferOptions bufferOpts = null;
 
-    private volatile TXMqttConstants.ConnectStatus mConnectStatus = TXMqttConstants.ConnectStatus.kConnectIdle;
+    protected volatile TXMqttConstants.ConnectStatus mConnectStatus = TXMqttConstants.ConnectStatus.kConnectIdle;
 
     /**
      * @param context    用户上下文（这个参数在回调函数时透传给用户）
@@ -168,8 +170,14 @@ public class TXMqttConnection implements MqttCallbackExtended {
         mConnOptions.setUserName(userNameStr);
 
         if (mSecretKey != null) {
-            String passWordStr = HmacSha256.getSignature(userNameStr.getBytes(), Base64.decode(mSecretKey, Base64.DEFAULT)) + ";hmacsha256";
-            mConnOptions.setPassword(passWordStr.toCharArray());
+            try {
+                Log.d(TAG, "secret is " + mSecretKey);
+                String passWordStr = HmacSha256.getSignature(userNameStr.getBytes(), Base64.decode(mSecretKey, Base64.DEFAULT)) + ";hmacsha256";
+                mConnOptions.setPassword(passWordStr.toCharArray());
+            }
+            catch (IllegalArgumentException e) {
+                Log.d(TAG, "Failed to set password");
+            }
         }
 
         mConnOptions.setMqttVersion(MqttConnectOptions.MQTT_VERSION_3_1_1);
@@ -488,7 +496,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
      *
      * @param connectStatus 当前连接状态
      */
-    private synchronized void setConnectingState(TXMqttConstants.ConnectStatus connectStatus) {
+    protected synchronized void setConnectingState(TXMqttConstants.ConnectStatus connectStatus) {
         this.mConnectStatus = connectStatus;
     }
 
@@ -586,7 +594,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
     /**
      * 获取连接ID（长度为5的数字字母随机字符串）
      */
-    private String getConnectId() {
+    protected String getConnectId() {
         StringBuffer connectId = new StringBuffer();
         for (int i = 0; i < TXMqttConstants.MAX_CONN_ID_LEN; i++) {
             int flag = (int) (Math.random() * Integer.MAX_VALUE) % 3;
