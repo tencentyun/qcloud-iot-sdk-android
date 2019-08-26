@@ -56,6 +56,30 @@
 
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/subscribe_topic"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="订阅主题" />
+
+        <Button
+            android:id="@+id/publish_topic"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="发布主题" />
+        <Button
+            android:id="@+id/unSubscribe_topic"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="取消订阅主题" />
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"

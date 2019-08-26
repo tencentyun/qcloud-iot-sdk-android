@@ -5,6 +5,9 @@ import android.util.Base64;
 import android.util.Log;
 
 import com.qcloud.iot.common.Status;
+import com.qcloud.iot.log.TXMqttLog;
+import com.qcloud.iot.log.TXMqttLogCallBack;
+import com.qcloud.iot.log.TXMqttLogConstants;
 import com.qcloud.iot.util.HmacSha256;
 import com.qcloud.iot.util.TXLog;
 
@@ -20,6 +23,7 @@ import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.internal.wire.MqttSuback;
 import org.eclipse.paho.client.mqttv3.internal.wire.MqttWireMessage;
+import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Iterator;
@@ -59,6 +63,10 @@ public class TXMqttConnection implements MqttCallbackExtended {
     protected int mLastReceivedMessageId = INVALID_MESSAGE_ID;
 
     private TXOTAImpl mOTAImpl = null;
+
+    protected boolean mMqttLogFlag;
+    public TXMqttLogCallBack mMqttLogCallBack = null;
+    private TXMqttLog mMqttLog = null;
 
     /**
      * 断连状态下buffer缓冲区，当连接重新建立成功后自动将buffer中数据写出
@@ -109,13 +117,43 @@ public class TXMqttConnection implements MqttCallbackExtended {
      * @param serverURI         服务器URI，腾讯云默认唯一地址 TXMqttConstants.DEFAULT_SERVER_URI="ssl://connect.iot.qcloud.com:8883"
      * @param productID         产品名
      * @param deviceName        设备名，唯一
-	 * @param secretKey         密钥
+     * @param secretKey         密钥
      * @param bufferOpts        发布消息缓存buffer，当发布消息时MQTT连接非连接状态时使用
      * @param clientPersistence 消息永久存储
      * @param callBack          连接、消息发布、消息订阅回调接口
      */
     public TXMqttConnection(Context context, String serverURI, String productID, String deviceName, String secretKey,
-                            DisconnectedBufferOptions bufferOpts, MqttClientPersistence clientPersistence, TXMqttActionCallBack callBack) {
+                            DisconnectedBufferOptions bufferOpts, MqttClientPersistence clientPersistence,TXMqttActionCallBack callBack) {
+        this(context, serverURI, productID, deviceName, secretKey, bufferOpts, clientPersistence, false, null, callBack);
+    }
+
+    /**
+     * @param context           用户上下文（这个参数在回调函数时透传给用户）
+     * @param serverURI         服务器URI，腾讯云默认唯一地址 TXMqttConstants.DEFAULT_SERVER_URI="ssl://connect.iot.qcloud.com:8883"
+     * @param productID         产品名
+     * @param deviceName        设备名，唯一
+	 * @param secretKey         密钥
+     * @param bufferOpts        发布消息缓存buffer，当发布消息时MQTT连接非连接状态时使用
+     * @param clientPersistence 消息永久存储
+     * @param logCallBack       日子上传回调接口
+     * @param callBack          连接、消息发布、消息订阅回调接口
+     */
+    public TXMqttConnection(Context context, String serverURI, String productID, String deviceName, String secretKey,
+                            DisconnectedBufferOptions bufferOpts, MqttClientPersistence clientPersistence, TXMqttLogCallBack logCallBack,TXMqttActionCallBack callBack) {
+        this(context, serverURI, productID, deviceName, secretKey, bufferOpts, clientPersistence, true, logCallBack, callBack);
+    }
+
+    /**
+     * @param context           用户上下文（这个参数在回调函数时透传给用户）
+     * @param serverURI         服务器URI，腾讯云默认唯一地址 TXMqttConstants.DEFAULT_SERVER_URI="ssl://connect.iot.qcloud.com:8883"
+     * @param productID         产品名
+     * @param deviceName        设备名，唯一
+     * @param secretKey         密钥
+     * @param bufferOpts        发布消息缓存buffer，当发布消息时MQTT连接非连接状态时使用
+     * @param clientPersistence 消息永久存储
+     * @param callBack          连接、消息发布、消息订阅回调接口
+     */
+    public TXMqttConnection(Context context, String serverURI, String productID, String deviceName, String secretKey,DisconnectedBufferOptions bufferOpts, MqttClientPersistence clientPersistence, Boolean mqttLogFlag, TXMqttLogCallBack logCallBack, TXMqttActionCallBack callBack) {
         this.mContext = context;
 
         this.mSecretKey = secretKey;
@@ -126,7 +164,8 @@ public class TXMqttConnection implements MqttCallbackExtended {
         this.mUserName = mClientId + ";" + TXMqttConstants.APPID;
         this.bufferOpts = bufferOpts;
         this.mMqttPersist = clientPersistence;
-
+        this.mMqttLogFlag = mqttLogFlag;
+        this.mMqttLogCallBack = logCallBack;
         this.mActionCallBack = callBack;
     }
 
@@ -164,12 +203,17 @@ public class TXMqttConnection implements MqttCallbackExtended {
             return Status.PARAMETER_INVALID;
         }
 
-        Long timestamp = System.currentTimeMillis()/1000 + 600;
+        Long timestamp;
+        if (options.isAutomaticReconnect()) {
+            timestamp = (long) Integer.MAX_VALUE;
+        } else {
+            timestamp = System.currentTimeMillis()/1000 + 600;
+        }
         String userNameStr = mUserName + ";" + getConnectId() + ";" + timestamp;
 
         mConnOptions.setUserName(userNameStr);
 
-        if (mSecretKey != null) {
+        if (mSecretKey != null && mSecretKey.length() != 0) {
             try {
                 Log.d(TAG, "secret is " + mSecretKey);
                 String passWordStr = HmacSha256.getSignature(userNameStr.getBytes(), Base64.decode(mSecretKey, Base64.DEFAULT)) + ";hmacsha256";
@@ -188,6 +232,11 @@ public class TXMqttConnection implements MqttCallbackExtended {
                 TXLog.i(TAG, "onSuccess!");
                 setConnectingState(TXMqttConstants.ConnectStatus.kConnected);
                 mActionCallBack.onConnectCompleted(Status.OK, false, token.getUserContext(), "connected to " + mServerURI);
+
+                // 连接建立后，如果需要日志，则初始化日志功能
+                if (mMqttLogFlag) {
+                    initMqttLog(TAG);
+                }
             }
 
             @Override
@@ -233,6 +282,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
     public synchronized Status reconnect() {
         if (mMqttClient == null) {
             TXLog.e(TAG, "Reconnect myClient = null. Will not do reconnect");
+            mLog(TXMqttLogConstants.LEVEL_FATAL, TAG, "Reconnect myClient = null. Will not do reconnect");
             return Status.MQTT_NO_CONN;
         }
 
@@ -247,6 +297,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
                 mMqttClient.reconnect();
             } catch (Exception ex) {
                 TXLog.e(TAG, "Exception occurred attempting to reconnect: ", ex);
+                mLog(TXMqttLogConstants.LEVEL_FATAL,TAG, "Exception occurred attempting to reconnect: ", ex);
                 setConnectingState(TXMqttConstants.ConnectStatus.kConnectFailed);
                 return Status.ERROR;
             }
@@ -255,12 +306,14 @@ public class TXMqttConnection implements MqttCallbackExtended {
                 @Override
                 public void onSuccess(IMqttToken asyncActionToken) {
                     TXLog.i(TAG, "onSuccess!");
+
                     //mActionCallBack.onConnectCompleted(Status.OK, true, asyncActionToken.getUserContext(), "reconnected to " + mServerURI);
                 }
 
                 @Override
                 public void onFailure(IMqttToken asyncActionToken, Throwable exception) {
                     TXLog.e(TAG, exception, "onFailure!");
+                    mLog(TXMqttLogConstants.LEVEL_FATAL,TAG, "onFailure!");
                     setConnectingState(TXMqttConstants.ConnectStatus.kConnectFailed);
                     mActionCallBack.onConnectCompleted(Status.ERROR, true, asyncActionToken.getUserContext(), exception.toString());
                 }
@@ -271,6 +324,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
                 setConnectingState(TXMqttConstants.ConnectStatus.kDisconnected);
             } catch (Exception e) {
                 TXLog.e(TAG, "Exception occurred attempting to reconnect: ", e);
+                mLog(TXMqttLogConstants.LEVEL_FATAL,TAG, "Exception occurred attempting to reconnect: ", e);
                 setConnectingState(TXMqttConstants.ConnectStatus.kConnectFailed);
                 return Status.ERROR;
             }
@@ -325,6 +379,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
                 }
             } catch (MqttException e) {
                 TXLog.e(TAG, e, "manual disconnect failed.");
+                mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"manual disconnect failed.");
                 return Status.ERROR;
             }
         }
@@ -345,10 +400,12 @@ public class TXMqttConnection implements MqttCallbackExtended {
 
         if (topic == null || topic.trim().length() == 0) {
             TXLog.e(TAG, "Topic is empty!!!");
+            mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"Topic is empty!!!");
             return Status.PARAMETER_INVALID;
         }
         if (topic.length() > TXMqttConstants.MAX_SIZE_OF_CLOUD_TOPIC) {
             TXLog.e(TAG, "Topic length is too long!!!");
+            mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"Topic length is too long!!!");
             return Status.PARAMETER_INVALID;
         }
 
@@ -359,6 +416,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
                 sendToken = mMqttClient.publish(topic, message, userContext, new QcloudMqttActionListener(TXMqttConstants.PUBLISH));
             } catch (Exception e) {
                 TXLog.e(TAG, e, "publish topic: %s failed.", topic);
+                mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"publish topic: %s failed.", topic);
                 return Status.ERROR;
             }
         } else if ((mMqttClient != null) && (this.bufferOpts != null) && (this.bufferOpts.isBufferEnabled())) { //放入缓存
@@ -366,10 +424,12 @@ public class TXMqttConnection implements MqttCallbackExtended {
                 sendToken = mMqttClient.publish(topic, message, userContext, new QcloudMqttActionListener(TXMqttConstants.PUBLISH));
             } catch (Exception e) {
                 TXLog.e(TAG, e, "publish topic: %s failed.", topic);
+                mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"publish topic: %s failed.", topic);
                 return Status.ERROR;
             }
         } else {
             TXLog.e(TAG, "publish topic: %s failed, mMqttClient not connected and disconnect buffer not enough.", topic);
+            mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"publish topic: %s failed, mMqttClient not connected and disconnect buffer not enough.", topic);
             return Status.ERROR;
         }
 
@@ -387,10 +447,12 @@ public class TXMqttConnection implements MqttCallbackExtended {
     public Status subscribe(final String topic, final int qos, Object userContext) {
         if (topic == null || topic.trim().length() == 0) {
             TXLog.e(TAG, "Topic is empty!!!");
+            mLog(TXMqttLogConstants.LEVEL_FATAL, TAG, "Topic is empty!!!");
             return Status.PARAMETER_INVALID;
         }
         if (topic.length() > TXMqttConstants.MAX_SIZE_OF_CLOUD_TOPIC) {
             TXLog.e(TAG, "Topic length is too long!!!");
+            mLog(TXMqttLogConstants.LEVEL_FATAL, TAG, "Topic length is too long!!!");
             return Status.PARAMETER_INVALID;
         }
 
@@ -401,10 +463,12 @@ public class TXMqttConnection implements MqttCallbackExtended {
                 mMqttClient.subscribe(topic, qos, userContext, new QcloudMqttActionListener(TXMqttConstants.SUBSCRIBE));
             } catch (Exception e) {
                 TXLog.e(TAG, e, "subscribe topic: %s failed.", topic);
+                mLog(TXMqttLogConstants.LEVEL_FATAL, TAG, "subscribe topic: %s failed.", topic);
                 return Status.ERROR;
             }
         } else {
             TXLog.e(TAG, "subscribe topic: %s failed, because mMqttClient not connected.", topic);
+            mLog(TXMqttLogConstants.LEVEL_FATAL, TAG, "subscribe topic: %s failed, because mMqttClient not connected.", topic);
             return Status.MQTT_NO_CONN;
         }
 
@@ -412,7 +476,6 @@ public class TXMqttConnection implements MqttCallbackExtended {
 
         return Status.OK;
     }
-
 
     /**
      * 取消订阅主题, 结果通过回调函数通知。
@@ -424,10 +487,12 @@ public class TXMqttConnection implements MqttCallbackExtended {
     public Status unSubscribe(final String topic, Object userContext) {
         if (topic == null || topic.trim().length() == 0) {
             TXLog.e(TAG, "Topic is empty!!!");
+            mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"Topic is empty!!!");
             return Status.PARAMETER_INVALID;
         }
         if (topic.length() > TXMqttConstants.MAX_SIZE_OF_CLOUD_TOPIC) {
             TXLog.e(TAG, "Topic length is too long!!!");
+            mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"Topic length is too long!!!");
             return Status.PARAMETER_INVALID;
         }
 
@@ -438,10 +503,12 @@ public class TXMqttConnection implements MqttCallbackExtended {
                 mMqttClient.unsubscribe(topic, userContext, new QcloudMqttActionListener(TXMqttConstants.UNSUBSCRIBE));
             } catch (Exception e) {
                 TXLog.e(TAG, e, "unSubscribe topic: %s failed.", topic);
+                mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"unSubscribe topic: %s failed.", topic);
                 return Status.ERROR;
             }
         } else {
             TXLog.e(TAG, "unSubscribe topic: %s failed, because mMqttClient not connected.", topic);
+            mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"unSubscribe topic: %s failed, because mMqttClient not connected.", topic);
             return Status.MQTT_NO_CONN;
         }
 
@@ -492,6 +559,57 @@ public class TXMqttConnection implements MqttCallbackExtended {
     }
 
     /**
+     * 初始化日志上传功能
+     * @param tag
+     */
+    protected void initMqttLog(final String tag) {
+        if (mMqttLog == null) {
+            this.mMqttLog = new TXMqttLog(this);
+        }
+
+        if (Status.OK != mMqttLog.initMqttLog()){
+            TXLog.i(tag,"Init MqttLog failed!" );
+        }
+    }
+
+    /**
+     * 生成一条设备日志
+     * @param logLevel 日志级别：
+     *                 MQTT错误：TXMqttLogConstants.LEVEL_FATAL    
+     *                 错误：TXMqttLogConstants.LEVEL_ERROR
+     *                 警告：TXMqttLogConstants.LEVEL_WARN
+     *                 通知：TXMqttLogConstants.LEVEL_INFO
+     *                 调试：TXMqttLogConstants.LEVEL_DEBUG
+     * @param tag
+     * @param format
+     * @param obj
+     */
+    public void mLog(int logLevel, final String tag,final String format, final Object... obj) {
+        if( mMqttLog != null) {
+            if( !(mMqttLog.saveMqttLog(logLevel, tag, format, obj))) {
+                TXLog.w(tag, "Save %s Level Log failed!", TXMqttLog.level_str[logLevel] );
+            }
+        }
+    }
+
+    public void mLog(int logLevel, final String tag,final String msg) {
+        if( mMqttLog != null) {
+            if( !(mMqttLog.saveMqttLog(logLevel, tag, msg))) {
+                TXLog.w(tag, "Save %s Level Log failed!", TXMqttLog.level_str[logLevel] );
+            }
+        }
+    }
+
+    /**
+     * 触发一次日志上传
+     */
+    public void uploadLog() {
+        if(mMqttLog != null) {
+            mMqttLog.uploadMqttLog();
+        }
+    }
+
+    /**
      * 设置当前连接状态
      *
      * @param connectStatus 当前连接状态
@@ -525,10 +643,16 @@ public class TXMqttConnection implements MqttCallbackExtended {
                 mMqttClient.subscribe(topic, qos, null, new QcloudMqttActionListener(TXMqttConstants.SUBSCRIBE));
             } catch (Exception e) {
                 TXLog.e(TAG, "subscribe to %s failed.", topic);
+                mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"subscribe to %s failed.", topic);
             }
         }
 
         mActionCallBack.onConnectCompleted(Status.OK, reconnect, null, "connected to " + serverURI);
+
+        //重新连接，处理离线日志，重新获取日志级别
+        if (mMqttLogFlag) {
+            initMqttLog(TAG);
+        }
     }
 
     /**
@@ -539,7 +663,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
     @Override
     public void connectionLost(Throwable cause) {
         TXLog.e(TAG, "connection lost because of: %s", cause.toString());
-
+        mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"connection lost because of: %s", cause.toString());
         setConnectingState(TXMqttConstants.ConnectStatus.kDisconnected);
 
         mActionCallBack.onConnectionLost(cause);
@@ -562,6 +686,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
     public void messageArrived(String topic, MqttMessage message) throws Exception {
         if (message.getQos() > 0 && message.getId() == mLastReceivedMessageId) {
             TXLog.e(TAG, "Received topic: %s, id: %d, message: %s, discard repeated message!!!", topic, message.getId(), message);
+            mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"Received topic: %s, id: %d, message: %s, discard repeated message!!!", topic, message.getId(), message);
             return;
         }
 
@@ -578,6 +703,29 @@ public class TXMqttConnection implements MqttCallbackExtended {
             if (!consumed) {
                 mActionCallBack.onMessageReceived(topic, message);
             }
+        }
+
+        //判断获取日志等级
+        if (mMqttLog != null) {
+            if (topic.startsWith("$" + TXMqttLogConstants.LOG)) {
+                String jsonStr = new String(message.getPayload());
+
+                try {
+                    JSONObject jsonObj = new JSONObject(jsonStr);
+
+                    if (jsonObj.has(TXMqttLogConstants.LOG_LEVEL)) {
+                        int logLevel = jsonObj.getInt(TXMqttLogConstants.LOG_LEVEL);
+                        mMqttLog.setMqttLogLevel(logLevel);
+                        uploadLog();
+                        TXLog.d(TAG, "******Set mqttLogLevel to " + logLevel);
+                        return;
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            }
+            TXLog.d(TAG, "******Get mqttLogLevel failed ");
         }
     }
 
@@ -654,6 +802,7 @@ public class TXMqttConnection implements MqttCallbackExtended {
 
                 default:
                     TXLog.e(TAG, "Unknown message on Success:" + token);
+                    mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"Unknown message on Success:" + token);
                     break;
             }
         }
@@ -672,8 +821,10 @@ public class TXMqttConnection implements MqttCallbackExtended {
                     break;
                 default:
                     TXLog.e(TAG, "Unknown message on onFailure:" + token);
+                    mLog(TXMqttLogConstants.LEVEL_FATAL, TAG,"Unknown message on onFailure:" + token);
                     break;
             }
         }
     }
+
 }

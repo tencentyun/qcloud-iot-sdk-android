@@ -23,6 +23,13 @@
         android:layout_height="wrap_content">
 
         <Button
+            android:id="@+id/dynreg"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.5"
+            android:text="动态注册" />
+
+        <Button
             android:id="@+id/connect"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -93,6 +100,23 @@
 
     </LinearLayout>
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <Button
+            android:id="@+id/mlog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.3"
+            android:text="日志测试" />
+        <Button
+            android:id="@+id/uploadlog"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.3"
+            android:text="日志上传" />
+    </LinearLayout>
 
     <ScrollView
         android:layout_width="match_parent"

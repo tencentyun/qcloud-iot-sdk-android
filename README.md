@@ -56,6 +56,24 @@
 
 ![](https://main.qcloudimg.com/raw/7e64714a708834ef1bb66b29454f6dae.png)
 
+#### 7. 开启日志上传功能
+
+点击创建产品中的**设备列表**，选择需要开启日志上传功能的设备，点击**管理**。
+
+![](https://main.qcloudimg.com/raw/88c62e9168db0ecbe3d5acd3fff29160.jpg)
+
+点击**编辑**设备日志配置，打开设备日志上传功能，并设置日志等级。
+
+![](https://main.qcloudimg.com/raw/6e7c87f626bb0137e906c8b7deeac991.jpg)
+**说明：如果不需要测试日志上传功能，这一步可跳过。**
+
+### 8. 动态注册功能
+
+在控制台使能**动态注册**，可选择使能**自动创建设备**，获取**ProductSecret**。
+
+![](https://main.qcloudimg.com/raw/eca97a0ccf80997c0d224cf03fca713c.jpg)
+**说明：详细说明可以参考控制台页面说明。**
+
 ## 二. 编译运行示例程序
 
 #### 1. 下载SDK
@@ -74,52 +92,60 @@
 
 如果不在代码中修改，Sample APP也提供了接口进行设置，在**参数**编辑框输入参数，然后通过**选择进行设置**下拉菜单进行相应的设置，可以设置**PRODUCT_ID**，**DEVICE_NAME**，**DEVICE_SECRET**，**SUB_PRODUCTID**，**SUB_DEVNAME**和**TEST_TOPIC**。通常情况下，**BROKER_URL**无需修改，使用默认即可。
 
-![](https://main.qcloudimg.com/raw/f389f052ad945511b1bc864ecbbfeeb9.png)  
+![](https://main.qcloudimg.com/raw/0c490d77cfb1a50d2576a488ad588214.jpg)  
 
 #### 4. 运行
 点击 Android Studio Run 'app' 按钮安装 Demo。
 
-#### 5. 连接MQTT
+#### 5. 动态注册  
+点击 Demo 中的【动态注册】按钮，查看logcat中日志信息，成功获取到PSK或者Cert/Priv则表明注册成功：
+```
+D TXMQTT  : Dynamic Register OK!
+I TXMQTT  : Dynamic register OK! onGetDevicePSK, devicePSK[**********************]
+```
+如果不使用动态注册功能，则使用代码中写入的设备参数信息或者通过设置界面设置的参数进行测试。
+
+#### 6. 连接MQTT
 点击 Demo 中的【连接 MQTT 】按钮，观察 Demo 及 logcat 中日志信息，以下为 logcat 中日志信息：
 ```
 com.qcloud.iot I/com.qcloud.iot.mqtt.TXMqttConnection: Start connecting to ssl://connect.iot.qcloud.com:8883
 com.qcloud.iot D/IoTMqttFragment: onConnectCompleted, status[OK], reconnect[false], userContext[MQTTRequest{requestType='connect', requestId=0}], msg[connected to ssl://connect.iot.qcloud.com:8883]
 ```
-#### 6. 子设备上线
+#### 7. 子设备上线
 点击Demo中的【子设备上线】按钮，观察Demo以及logcat中的日志信息：
 ```
 onPublishCompleted, status[OK], topics[[$gateway/operation/******/******]],  userContext[], errMsg[publish success]
 message received $gateway/operation/result/******/******
 got gate operation messga $gateway/operation/result/******/******{"type":"online","payload":{"devices":[{"product_id":"********","device_name":"*****","result":0}]}}
 ```
-#### 7. 订阅主题
+#### 8. 订阅主题
 点击 Demo 中的【订阅主题】按钮，观察 Demo 及 logcat 中日志信息，以下为 logcat 中日志信息：
 ```
 com.qcloud.iot I/com.qcloud.iot.mqtt.TXMqttConnection: Starting subscribe topic: ******/******/custom_data
 com.qcloud.iot D/IoTMqttFragment: onSubscribeCompleted, status[OK], topics[[******/******/custom_data]], userContext[MQTTRequest{requestType='subscribeTopic', requestId=1}], errMsg[subscribe success]
 ```
-#### 8. 发布主题
+#### 9. 发布主题
 点击 Demo 中的【发布主题】按钮，观察 Demo 及 logcat 中日志信息，以下为 logcat 中日志信息：
 ```
 com.qcloud.iot I/com.qcloud.iot.mqtt.TXMqttConnection: Starting publish topic: ******/******/custom_data Message: {"temperature":"0","car_type":"suv","maximum_speed":"205","oil_consumption":"6.6"}
 com.qcloud.iot D/IoTMqttFragment: onPublishCompleted, status[OK], topics[[******/******/custom_data]],  userContext[MQTTRequest{requestType='publishTopic', requestId=2}], errMsg[publish success]
 ```
 
-#### 9. 观察消息下发
+#### 10. 观察消息下发
 如下日志信息显示该消息因为是到达已被订阅的 Topic, 所以又被服务器原样推送到示例程序, 并进入相应的回调函数。以下为 logcat 中信息：
 ```
 com.qcloud.iot I/com.qcloud.iot.mqtt.TXMqttConnection: Received topic: ******/******/data, message: {"temperature":"0","car_type":"suv","maximum_speed":"205","oil_consumption":"6.6"}
 com.qcloud.iot D/IoTMqttFragment: receive command, topic[******/******/data], message[{"temperature":"0","car_type":"suv","maximum_speed":"205","oil_consumption":"6.6"}]
 ```
 
-#### 10. 取消订阅主题
+#### 11. 取消订阅主题
 点击 Demo 中的【取消订阅主题】按钮，观察 Demo 及 logcat 中日志信息，以下为 logcat 中日志信息：
 ```
 com.qcloud.iot I/com.qcloud.iot.mqtt.TXMqttConnection: Starting unsubscribe topic: ******/******/data
 com.qcloud.iot D/IoTMqttFragment: onUnSubscribeCompleted, status[OK], topics[[******/******/data]], userContext[MQTTRequest{requestType='unSubscribeTopic', requestId=3}], errMsg[unsubscribe success]
 ```
 
-#### 11. 子设备下线
+#### 12. 子设备下线
 点击Demo中的【子设备上线】按钮，观察Demo以及logcat中的日志信息：
 ```
 Starting publish topic: $gateway/operation/******/****** Message: {"type":"offline","payload":{"devices":[{"product_id":"******","device_name":"******"}]}}
@@ -128,13 +154,45 @@ message received $gateway/operation/result/******/******
 got gate operation messga $gateway/operation/result/******/******{"type":"offline","payload":{"devices":[{"product_id":"******","device_name":"******","result":0}]}}
 ```
 
-#### 12. 断开MQTT连接
+#### 13. 日志上传功能（需要给APP提供访问存储权限）
+
+点击Demo中的【日志测试】按钮，生成4种级别的日志各一条，观察Demo以及logcat中的日志信息：
+
+```
+Add log to log Deque! ERR|2019-07-14 15:03:50|TXMQTT|Error level log for test!!!
+Add log to log Deque! WRN|2019-07-14 15:03:50|TXMQTT|Warning level log for test!!!
+Add log to log Deque! INF|2019-07-14 15:03:50|TXMQTT|Info level log for test!!!
+Add log to log Deque! DBG|2019-07-14 15:03:50|TXMQTT|Debug level log for test!!!
+```
+
+正常情况下，最多等待30S后日志可以在云日志界面中**设备日志**中查看：
+
+![](https://main.qcloudimg.com/raw/518dbbda46a46729f7a9ccf9f1ec3571.jpg)
+
+点击Demo中的【日志上传】按钮，则可以立即将日志上传，观察Demo以及logcat中的日志信息：
+
+* 网络正常时，日志成功上传到云端，则会出现以下信息：
+
+```
+Upload log to http://devicelog.iot.cloud.tencent.com:80/cgi-bin/report-log success
+```
+
+* 网络不可用时，本例日志会保存到本地文件中，则会出现以下信息：
+
+```
+Lost Connection! Call mMqttCallBack.saveLogOffline()
+```
+
+**说明：当网络恢复可用时，本例保存在本地文件中的日志会自动上传到云端。**
+
+#### 14. 断开MQTT连接
+
 点击 Demo 中的【断开 MQTT 连接】按钮，观察 Demo 及 logcat 中日志信息，以下为 logcat 中日志信息：
 ```
 com.qcloud.iot D/IoTMqttFragment: onDisconnectCompleted, status[OK], userContext[MQTTRequest{requestType='disconnect', requestId=4}], msg[disconnected to ssl://connect.iot.qcloud.com:8883]
 ```
 
-#### 13. 观察控制台日志
+#### 15. 观察控制台日志
 可以登录物联云控制台, 点击左边导航栏中的**云日志**, 查看刚才上报的消息
 
 ![](http://qzonestyle.gtimg.cn/qzone/vas/opensns/res/doc/iot_1515734324922.png)
@@ -161,5 +219,6 @@ dependencies {
     compile 'com.qcloud.iot:iot-core:2.0.0'
 }
 ```
+**说明：推荐使用源码集成的方式**
 
 #关于SDK的更多使用方式及接口了解, 请访问[官方WiKi](https://github.com/tencentyun/qcloud-iot-sdk-android/wiki)

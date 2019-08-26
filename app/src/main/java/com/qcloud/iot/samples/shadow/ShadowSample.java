@@ -2,10 +2,14 @@ package com.qcloud.iot.samples.shadow;
 
 import android.content.Context;
 import android.os.Handler;
+import android.util.Log;
 
 import com.qcloud.iot.common.Status;
+import com.qcloud.iot.gateway.TXGatewayConnection;
+import com.qcloud.iot.mqtt.TXMqttActionCallBack;
 import com.qcloud.iot.mqtt.TXMqttConstants;
 import com.qcloud.iot.samples.IoTShadowFragment;
+import com.qcloud.iot.samples.mqtt.MQTTRequest;
 import com.qcloud.iot.shadow.DeviceProperty;
 import com.qcloud.iot.shadow.TXShadowActionCallBack;
 import com.qcloud.iot.shadow.TXShadowConnection;
@@ -14,9 +18,13 @@ import com.qcloud.iot.util.AsymcSslUtils;
 import com.qcloud.iot.util.TXLog;
 
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
+import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
@@ -33,7 +41,6 @@ public class ShadowSample {
      * 设备名称
      */
     private static final String DEVICE_NAME = "YOUR_DEVICE_NAME";
-
 
     /**
      * 密钥
@@ -77,6 +84,11 @@ public class ShadowSample {
 
     private boolean isConnected = false;
 
+    /**
+     * 请求ID
+     */
+    private static AtomicInteger requestID = new AtomicInteger(0);
+
     public ShadowSample(IoTShadowFragment parent, TXShadowActionCallBack shadowActionCallBack) {
         this.mParent = parent;
         this.mContext = parent.getContext();
@@ -101,7 +113,13 @@ public class ShadowSample {
         options.setConnectionTimeout(8);
         options.setKeepAliveInterval(240);
         options.setAutomaticReconnect(true);
-        options.setSocketFactory(AsymcSslUtils.getSocketFactoryByAssetsFile(mContext, DEVICE_CERT_NAME, DEVICE_KEY_NAME));
+
+        if(SECRET_KEY != null){
+            options.setSocketFactory(AsymcSslUtils.getSocketFactory());
+        } else{
+            options.setSocketFactory(AsymcSslUtils.getSocketFactoryByAssetsFile(mContext, DEVICE_CERT_NAME, DEVICE_KEY_NAME));
+        }
+
         Status status = mShadowConnection.connect(options, null);
         mParent.printLogInfo(TAG, String.format("connect IoT completed, status[%s]", status));
         isConnected = true;
@@ -130,6 +148,68 @@ public class ShadowSample {
         }
         mShadowConnection.disConnect(null);
         isConnected = false;
+    }
+
+    /**
+     * 订阅主题
+     *
+     * @param topicName 主题名
+     */
+    public void subscribeTopic(String topicName) {
+        if(!isConnected) {
+            return;
+        }
+        // QOS等级
+        int qos = TXMqttConstants.QOS1;
+        // 用户上下文（请求实例）
+        MQTTRequest mqttRequest = new MQTTRequest("subscribeTopic", requestID.getAndIncrement());
+        Log.d(TAG, "sub topic is " + topicName);
+        // 调用TXShadowConnection的subscribe方法订阅主题
+        mShadowConnection.subscribe(topicName, qos, mqttRequest);
+    }
+
+    /**
+     * 取消订阅主题
+     *
+     * @param topicName 主题名
+     */
+    public void unSubscribeTopic(String topicName) {
+        if(!isConnected) {
+            return;
+        }
+        // 用户上下文（请求实例）
+        MQTTRequest mqttRequest = new MQTTRequest("unSubscribeTopic", requestID.getAndIncrement());
+        Log.d(TAG, "Start to unSubscribe" + topicName);
+        // 取消订阅主题
+        mShadowConnection.unSubscribe(topicName, mqttRequest);
+    }
+
+    /**
+     * 发布主题
+     * @param topicName 主题名
+     * @param data 消息
+     */
+    public void publishTopic(String topicName, Map<String, String> data) {
+        // MQTT消息
+        MqttMessage message = new MqttMessage();
+
+        JSONObject jsonObject = new JSONObject();
+        try {
+            for (Map.Entry<String, String> entrys : data.entrySet()) {
+                jsonObject.put(entrys.getKey(), entrys.getValue());
+            }
+        } catch (JSONException e) {
+            TXLog.e(TAG, e, "pack json data failed!");
+        }
+        message.setQos(TXMqttConstants.QOS1);
+        message.setPayload(jsonObject.toString().getBytes());
+
+        // 用户上下文（请求实例）
+        MQTTRequest mqttRequest = new MQTTRequest("publishTopic", requestID.getAndIncrement());
+
+        Log.d(TAG, "pub topic " + topicName + message);
+        // 发布主题
+        mShadowConnection.publish(topicName, message, mqttRequest);
     }
 
     public void updateDeviceProperty(String propertyJSONDocument, List<DeviceProperty> devicePropertyList) {

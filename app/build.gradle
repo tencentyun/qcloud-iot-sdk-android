@@ -43,5 +43,6 @@ dependencies {
     compile project(':iot_service')
     compile 'com.android.support:appcompat-v7:26.+'
     compile 'com.android.support.constraint:constraint-layout:1.0.2'
+    compile "org.eclipse.paho:org.eclipse.paho.client.mqttv3"
     testCompile 'junit:junit:4.12'
 }

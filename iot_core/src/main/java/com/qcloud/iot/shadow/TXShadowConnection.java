@@ -3,6 +3,7 @@ package com.qcloud.iot.shadow;
 import android.content.Context;
 import android.os.SystemClock;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.qcloud.iot.common.Status;
 import com.qcloud.iot.mqtt.TXMqttActionCallBack;
@@ -24,6 +25,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -32,7 +34,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 public class TXShadowConnection {
 
     public static final String TAG = TXShadowConnection.class.getName();
-
 
     /**
      * clientToken formatter
@@ -77,7 +78,6 @@ public class TXShadowConnection {
 
     private static final int MAX_MESSAGE_ID = 65535;
     private int mPublishMessageId = 0;
-
 
     /**
      * @param context    用户上下文（这个参数在回调函数时透传给用户）
@@ -218,6 +218,63 @@ public class TXShadowConnection {
     }
 
     /**
+     * 订阅普通主题
+     *
+     * @param topicName 主题名
+     * @param qos QOS等级
+     * @param userContext 用户上下文（这个参数在回调函数时透传给用户）
+     * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
+     */
+    public Status subscribe(String topicName, int qos, Object userContext) {
+        Status status;
+        status = checkMqttStatus();
+        if (status != Status.OK) {
+            return status;
+        }
+        TXLog.d(TAG, "sub topic is " + topicName);
+        // 订阅主题
+        return mMqttConnection.subscribe(topicName, qos, userContext);
+    }
+
+    /**
+     * 取消订阅普通主题
+     *
+     * @param topicName 主题名
+     * @param userContext 用户上下文（这个参数在回调函数时透传给用户）
+     * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
+     */
+    public Status unSubscribe(String topicName, Object userContext) {
+        Status status;
+        status = checkMqttStatus();
+        if (status != Status.OK) {
+            return status;
+        }
+        TXLog.d(TAG, "Start to unSubscribe" + topicName);
+        // 取消订阅主题
+        return mMqttConnection.unSubscribe(topicName, userContext);
+    }
+
+    /**
+     * 实现普通topic的发布
+     *
+     * @param topicName    topic
+     * @param message     发布的消息
+     * @param userContext 用户上下文（这个参数在回调函数时透传给用户）
+     * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
+     */
+    public Status publish(String topicName, MqttMessage message, Object userContext) {
+        //判断MQTT状态
+        Status status;
+        status = checkMqttStatus();
+        if (status != Status.OK) {
+            return status;
+        }
+        TXLog.d(TAG, "pub topic " + topicName + message);
+        // 发布主题
+        return mMqttConnection.publish(topicName, message, userContext);
+    }
+
+    /**
      * 更新设备属性信息，结果通过回调函数通知。
      *
      * @param devicePropertyList 需要更新的设备属性集
@@ -329,7 +386,7 @@ public class TXShadowConnection {
     /**
      * 向指定TOPIC发布设备影子文档，结果通过回调函数通知。
      *
-     * @param topic       指定的topic
+     * @param topic       指定的topicsub
      * @param document    json文档
      * @param userContext 用户上下文（这个参数在回调函数时透传给用户）
      * @return 发送请求成功时返回Status.OK; 其它返回值表示发送请求失败；
@@ -349,12 +406,7 @@ public class TXShadowConnection {
         mqttMessage.setQos(TXMqttConstants.QOS0);
         TXLog.d(TAG, "******publish message id:" + mqttMessage.getId());
 
-        status = mMqttConnection.publish(topic, mqttMessage, userContext);
-        if (status != Status.OK) {
-            return status;
-        }
-
-        return Status.OK;
+        return  mMqttConnection.publish(topic, mqttMessage, userContext);
     }
 
     /**
@@ -370,7 +422,6 @@ public class TXShadowConnection {
 
         return Status.OK;
     }
-
 
     /**
      * 构建json信息
@@ -444,7 +495,6 @@ public class TXShadowConnection {
         return documentJSONObj.toString();
     }
 
-
     private String buildGetJsonDocument(String clientToken) {
         JSONObject documentJSONObj = new JSONObject();
 
@@ -472,7 +522,6 @@ public class TXShadowConnection {
 
         return documentJSONObj.toString();
     }
-
 
     private int getMessageId() {
         mPublishMessageId++;

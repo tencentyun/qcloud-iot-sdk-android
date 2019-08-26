@@ -5,6 +5,8 @@ import android.os.Environment;
 import android.util.Log;
 
 import com.qcloud.iot.gateway.TXGatewayConnection;
+
+import com.qcloud.iot.log.TXMqttLogCallBack;
 import com.qcloud.iot.mqtt.TXMqttActionCallBack;
 import com.qcloud.iot.mqtt.TXMqttConnection;
 import com.qcloud.iot.mqtt.TXMqttConstants;
@@ -22,6 +24,7 @@ import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -30,15 +33,23 @@ import javax.net.ssl.SSLContext;
 public class MQTTSample {
 
     private static final String TAG = "TXMQTT";
-
     // Default Value, should be changed in testing
     private String mBrokerURL = "ssl://iotcloud-mqtt.gz.tencentdevices.com:8883";
     private String mProductID = "PRODUCT-ID";
     private String mDevName = "DEVICE-NAME";
     private String mDevPSK = "DEVICE-SECRET";
+
+    private String mDevCertName = "DEVICE_CERT-NAME ";
+    private String mDevKeyName  = "DEVICE_KEY-NAME ";
+
     private String mSubProductID = "SUBDEV_PRODUCT-ID";
     private String mSubDevName = "SUBDEV_DEV-NAME";
     private String mTestTopic = "TEST_TOPIC_WITH_SUB_PUB";
+    private String mDevCert;
+    private String mDevPriv;
+
+    private boolean mMqttLogFlag;
+    private TXMqttLogCallBack mMqttLogCallBack;
 	
     private Context mContext;
 
@@ -54,11 +65,53 @@ public class MQTTSample {
      */
     private static AtomicInteger requestID = new AtomicInteger(0);
 
-    public MQTTSample(Context context, TXMqttActionCallBack callBack) {
+    public MQTTSample(Context context, TXMqttLogCallBack logCallBack, TXMqttActionCallBack callBack) {
         mContext = context;
         mMqttActionCallBack = callBack;
-        mMqttConnection = new TXGatewayConnection(mContext, mBrokerURL, mProductID, mDevName, mDevPSK, mMqttActionCallBack);
     }
+
+    public MQTTSample(Context context, TXMqttActionCallBack callBack, String brokerURL, String productId,
+                      String devName, String devPSK, String subProductID, String subDevName, String testTopic, String devCertName, String devKeyName,
+                      Boolean mqttLogFlag, TXMqttLogCallBack logCallBack) {
+        mBrokerURL = brokerURL;
+        mProductID = productId;
+        mDevName = devName;
+        mDevPSK = devPSK;
+        mSubProductID = subProductID;
+        mSubDevName = subDevName;
+        mTestTopic = testTopic;
+        mDevCertName = devCertName;
+        mDevKeyName = devKeyName;
+
+        mMqttLogFlag = mqttLogFlag;
+        mMqttLogCallBack = logCallBack;
+
+        mContext = context;
+        mMqttActionCallBack = callBack;
+   }
+
+    public MQTTSample(Context context, TXMqttActionCallBack callBack, String brokerURL, String productId,
+                      String devName, String devPsk, String devCert, String devPriv, String subProductID, String subDevName, String testTopic, String devCertName, String devKeyName,
+                      Boolean mqttLogFlag, TXMqttLogCallBack logCallBack) {
+        mBrokerURL = brokerURL;
+        mProductID = productId;
+        mDevName = devName;
+        mDevPSK = devPsk;
+        mDevCert = devCert;
+        mDevPriv = devPriv;
+        mSubProductID = subProductID;
+        mSubDevName = subDevName;
+        mTestTopic = testTopic;
+        mDevCertName = devCertName;
+        mDevKeyName = devKeyName;
+
+        mMqttLogFlag = mqttLogFlag;
+        mMqttLogCallBack = logCallBack;
+
+        mContext = context;
+        mMqttActionCallBack = callBack;
+    }
+
 
     public MQTTSample(Context context, TXMqttActionCallBack callBack, String brokerURL, String productId,
                       String devName, String devPSK, String subProductID, String subDevName, String testTopic) {
@@ -72,7 +125,6 @@ public class MQTTSample {
 
         mContext = context;
         mMqttActionCallBack = callBack;
-        mMqttConnection = new TXGatewayConnection(mContext, mBrokerURL, mProductID, mDevName, mDevPSK, mMqttActionCallBack);
     }
 
     /**
@@ -89,14 +141,22 @@ public class MQTTSample {
      * 建立MQTT连接
      */
     public void connect() {
-        mMqttConnection = new TXGatewayConnection(mContext, mBrokerURL, mProductID, mDevName, mDevPSK, mMqttActionCallBack);
+        mMqttConnection = new TXGatewayConnection(mContext, mBrokerURL, mProductID, mDevName, mDevPSK,null,null ,mMqttLogFlag, mMqttLogCallBack, mMqttActionCallBack);
         MqttConnectOptions options = new MqttConnectOptions();
         options.setConnectionTimeout(8);
         options.setKeepAliveInterval(240);
         options.setAutomaticReconnect(true);
 
-        options.setSocketFactory(AsymcSslUtils.getSocketFactory());
-       
+        if (mDevPriv != null && mDevCert != null && mDevPriv.length() != 0 && mDevCert.length() != 0) {
+            TXLog.i(TAG, "Using cert stream " + mDevPriv + "  " + mDevCert);
+            options.setSocketFactory(AsymcSslUtils.getSocketFactoryByStream(new ByteArrayInputStream(mDevCert.getBytes()), new ByteArrayInputStream(mDevPriv.getBytes())));
+        } else if (mDevPSK != null && mDevPSK.length() != 0){
+            TXLog.i(TAG, "Using PSK");
+            options.setSocketFactory(AsymcSslUtils.getSocketFactory());
+        } else {
+            TXLog.i(TAG, "Using cert assets file");
+            options.setSocketFactory(AsymcSslUtils.getSocketFactoryByAssetsFile(mContext, mDevCertName, mDevKeyName));
+        }
 
         MQTTRequest mqttRequest = new MQTTRequest("connect", requestID.getAndIncrement());
         mMqttConnection.connect(options, mqttRequest);
@@ -187,6 +247,29 @@ public class MQTTSample {
         // 发布主题
         mMqttConnection.publish(topic, message, mqttRequest);
 
+    }
+
+    /**
+     * 生成一条日志
+     * @param logLevel 日志级别：
+     *                 错误：TXMqttLogConstants.LEVEL_ERROR
+     *                 警告：TXMqttLogConstants.LEVEL_WARN
+     *                 通知：TXMqttLogConstants.LEVEL_INFO
+     *                 调试：TXMqttLogConstants.LEVEL_DEBUG
+     * @param tag
+     * @param format
+     * @param obj
+     */
+    public void mLog(int logLevel, final String tag,final String format, final Object... obj) {
+        if (mMqttLogFlag)
+            mMqttConnection.mLog(logLevel, tag, format, obj);
+    }
+
+    /**
+     * 发起一次日志上传
+     */
+    public void uploadLog() {
+        mMqttConnection.uploadLog();
     }
 
     public void checkFirmware() {

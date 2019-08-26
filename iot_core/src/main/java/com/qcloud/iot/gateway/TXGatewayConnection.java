@@ -5,6 +5,8 @@ import android.util.Base64;
 import android.util.Log;
 
 import com.qcloud.iot.common.Status;
+import com.qcloud.iot.log.TXMqttLog;
+import com.qcloud.iot.log.TXMqttLogCallBack;
 import com.qcloud.iot.mqtt.TXAlarmPingSender;
 import com.qcloud.iot.mqtt.TXMqttActionCallBack;
 import com.qcloud.iot.mqtt.TXMqttConnection;
@@ -41,6 +43,12 @@ public class TXGatewayConnection  extends TXMqttConnection {
     private static final String GW_OPERATION_RES_PREFIX = "$gateway/operation/result/";
     private static final String GW_OPERATION_PREFIX = "$gateway/operation/";
 
+
+    public TXGatewayConnection(Context context, String serverURI, String productID, String deviceName, String secretKey, DisconnectedBufferOptions bufferOpts,
+                               MqttClientPersistence clientPersistence, Boolean mqttLogFlag, TXMqttLogCallBack logCallBack, TXMqttActionCallBack callBack) {
+        super(context, serverURI, productID, deviceName, secretKey, bufferOpts, clientPersistence, mqttLogFlag,logCallBack,callBack);
+    }
+
     /**
      * @param context           用户上下文（这个参数在回调函数时透传给用户）
      * @param serverURI         服务器URI，腾讯云默认唯一地址 TXMqttConstants.DEFAULT_SERVER_URI="ssl://connect.iot.qcloud.com:8883"
@@ -52,8 +60,8 @@ public class TXGatewayConnection  extends TXMqttConnection {
      * @param callBack          连接、消息发布、消息订阅回调接口
      */
     public TXGatewayConnection(Context context, String serverURI, String productID, String deviceName, String secretKey,
-                            DisconnectedBufferOptions bufferOpts, MqttClientPersistence clientPersistence, TXMqttActionCallBack callBack) {
-        super(context, serverURI, productID, deviceName, secretKey, bufferOpts, clientPersistence, callBack);
+                            DisconnectedBufferOptions bufferOpts, MqttClientPersistence clientPersistence, TXMqttLogCallBack logCallBack,TXMqttActionCallBack callBack) {
+        this(context, serverURI, productID, deviceName, secretKey, bufferOpts, clientPersistence,true, logCallBack, callBack);
     }
 
     /**
@@ -69,7 +77,7 @@ public class TXGatewayConnection  extends TXMqttConnection {
     public TXGatewayConnection(Context context, String productID, String deviceName, String secretKey,
                                DisconnectedBufferOptions bufferOpts, MqttClientPersistence clientPersistence,
                                TXMqttActionCallBack callBack) {
-        this(context, DEFAULT_SERVER_URI, productID, deviceName, secretKey, bufferOpts, clientPersistence, callBack);
+        this(context, DEFAULT_SERVER_URI, productID, deviceName, secretKey, bufferOpts, clientPersistence, false,null, callBack);
     }
 
     /**
@@ -86,6 +94,11 @@ public class TXGatewayConnection  extends TXMqttConnection {
         this(context, productID, deviceName, secretKey, bufferOpts, null, callBack);
     }
 
+    public TXGatewayConnection(Context context, String srvURL, String productID, String deviceName,
+                               String secretKey, TXMqttActionCallBack callBack) {
+        this(context, srvURL, productID, deviceName, secretKey, null, null, false, null, callBack);
+    }
+
     /**
      *
      * @param context
@@ -99,10 +112,7 @@ public class TXGatewayConnection  extends TXMqttConnection {
         this(context, productID, deviceName, secretKey, null, null, callBack);
     }
 
-    public TXGatewayConnection(Context context, String srvURL, String productID, String deviceName,
-                               String secretKey, TXMqttActionCallBack callBack) {
-        this(context, srvURL, productID, deviceName, secretKey, null, null, callBack);
-    }
+
 
     /**
      *
@@ -315,7 +325,7 @@ public class TXGatewayConnection  extends TXMqttConnection {
 
         mConnOptions.setUserName(userNameStr);
 
-        if (mSecretKey != null) {
+        if (mSecretKey != null && mSecretKey.length() != 0) {
             try {
                 Log.d(TAG, "secret is " + mSecretKey);
                 String passWordStr = HmacSha256.getSignature(userNameStr.getBytes(), Base64.decode(mSecretKey, Base64.DEFAULT)) + ";hmacsha256";
@@ -340,6 +350,10 @@ public class TXGatewayConnection  extends TXMqttConnection {
 
                 subscribe(gwTopic, qos, "Subscribe GATEWAY result topic");
                 Log.d(TAG, "Connected, then subscribe the gateway result topic");
+
+                if (mMqttLogFlag) {
+                    initMqttLog(TAG);
+                }
             }
 
             @Override

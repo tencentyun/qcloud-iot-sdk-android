@@ -1,6 +1,9 @@
 package com.qcloud.iot.samples;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
@@ -38,11 +41,28 @@ public class IoTMainActivity extends AppCompatActivity implements View.OnClickLi
 
     private int mCurrentFragment = R.id.btn_basic_function;
 
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE};
+
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_iot_main);
         initComponent();
+
+        //日志功能开启写权限
+        try {
+            int permission = ActivityCompat.checkSelfPermission(this,
+                    "android.permission.WRITE_EXTERNAL_STORAGE");
+            if (permission != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
