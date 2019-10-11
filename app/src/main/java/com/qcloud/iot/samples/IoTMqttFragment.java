@@ -88,7 +88,7 @@ public class IoTMqttFragment extends Fragment {
     private String mDevPSK  = null; //若使用证书验证，设为null
     private String mSubProductID = "SUBDEV_PRODUCT-ID"; 
     private String mSubDevName = "SUBDEV_DEV-NAME";
-    private String mTestTopic = "TEST_TOPIC_WITH_SUB_PUB";
+    private String mTestTopic = "TEST_TOPIC_WITH_SUB_PUB";    // productID/DeviceName/TopicName
 
     private String mDevCertName = "YOUR_DEVICE_NAME_cert.crt";
     private String mDevKeyName  = "YOUR_DEVICE_NAME_private.key";
@@ -259,7 +259,7 @@ public class IoTMqttFragment extends Fragment {
                 // 本例中，发布的自定义数据，IoT服务端会在发给当前设备。
                 if (mMQTTSample == null)
                     return;
-                mMQTTSample.subscribeTopic("data");
+                mMQTTSample.subscribeTopic();
             }
         });
 
@@ -286,7 +286,7 @@ public class IoTMqttFragment extends Fragment {
             public void onClick(View view) {
                 if (mMQTTSample == null)
                     return;
-                mMQTTSample.unSubscribeTopic("data");
+                mMQTTSample.unSubscribeTopic();
             }
         });
 

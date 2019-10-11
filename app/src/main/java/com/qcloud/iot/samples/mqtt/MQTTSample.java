@@ -127,17 +127,7 @@ public class MQTTSample {
         mMqttActionCallBack = callBack;
     }
 
-    /**
-     * 获取主题
-     *
-     * @param topicName
-     * @return
-     */
-    private String getTopic(String topicName) {
-        return mTestTopic;
-    }
-
-    /**
+     /**
      * 建立MQTT连接
      */
     public void connect() {
@@ -188,11 +178,10 @@ public class MQTTSample {
     /**
      * 订阅主题
      *
-     * @param topicName 主题名
      */
-    public void subscribeTopic(String topicName) {
+    public void subscribeTopic() {
         // 主题
-        String topic = getTopic(topicName);
+        String topic = mTestTopic;
         // QOS等级
         int qos = TXMqttConstants.QOS1;
         // 用户上下文（请求实例）
@@ -208,11 +197,10 @@ public class MQTTSample {
     /**
      * 取消订阅主题
      *
-     * @param topicName 主题名
      */
-    public void unSubscribeTopic(String topicName) {
+    public void unSubscribeTopic() {
         // 主题
-        String topic = getTopic(topicName);
+        String topic = mTestTopic;
         // 用户上下文（请求实例）
         MQTTRequest mqttRequest = new MQTTRequest("unSubscribeTopic", requestID.getAndIncrement());
         Log.d(TAG, "Start to unSubscribe" + topic);
@@ -225,7 +213,7 @@ public class MQTTSample {
      */
     public void publishTopic(String topicName, Map<String, String> data) {
         // 主题
-        String topic = getTopic(topicName);
+        String topic = mTestTopic;
         // MQTT消息
         MqttMessage message = new MqttMessage();
 
