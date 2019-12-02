@@ -266,7 +266,7 @@ public class TXMqttService extends Service {
             String keyFile  = options.getDeviceKeyName();
             String secretKey = options.getSecretKey();
 
-            if (secretKey != null && certFile == null && keyFile == null) {
+            if (secretKey != null) {
                 connectOptions.setSocketFactory(AsymcSslUtils.getSocketFactory());
             }else {
 
