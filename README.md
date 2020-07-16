@@ -1,3 +1,5 @@
+# 请移步至新的仓库地址 [hub-device-android](https://github.com/tencentyun/iot-device-android/tree/master/hub-device-android)
+
 # 腾讯物联云SDK
 腾讯物联云 SDK 依靠安全且性能强大的数据通道，为物联网领域开发人员提供终端(如传感器, 执行器, 嵌入式设备或智能家电等等)和云端的双向通信能力。
 
